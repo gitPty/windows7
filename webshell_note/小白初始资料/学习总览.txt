@@ -1,0 +1,27 @@
+#1. 安全圈info网站：
+www.anquanquan.info/#tools
+
+
+site:testphp.vulnweb.com inurl:(login|admin)
+info:www.zhihu.com
+site:testphp.vulnweb.com inurl:phpinfo 	#搜索phpinfo
+site:testphp.vulnweb.com inurl:php？ 	#搜索有数据库交互操作 的页面
+site:testphp.vulnweb.com filetype:log  	#搜索日志文件，查看泄露路径
+#如果目标站点关闭了，看之前的缓存，可以用cache 语法
+cache:testphp.vulnweb.com 
+e.g.:
+http://webcache.googleusercontent.com/search?sxsrf=ALeKk011Kl66m1qKR4kYcII2FeBxy2g33w%3A1591148974085&ei=rgHXXuvgBNfA0PEPpcik8AU&q=cache%3Atestphp.vulnweb.com&oq=cache%3Atestphp.vulnweb.com&gs_lcp=CgZwc3ktYWIQA1AAWABghQFoAHAAeACAAQCIAQCSAQCYAQCqAQdnd3Mtd2l6&sclient=psy-ab&ved=0ahUKEwjr74nrw-TpAhVXIDQIHSUkCV4Q4dUDCAw&uact=5
+
+#2. 探测网站。
+whatweb.net
+在网站上输入网址，查看对应网站状态：
+#3. 站长工具网站
+ping.chianz.com
+
+
+owasp教程：https://www.bilibili.com/video/BV1uE41177Ky?p=9
+
+bilibili：bzhack
+
+教程上：https://www.bilibili.com/video/av80901377
+教程下：https://www.bilibili.com/video/av82008804/

@@ -1,0 +1,164 @@
+创建数据库：
+create database demo；
+
+使用数据库：
+ use demo
+#删除数据库
+drop database demo;
+##########注释php
+#这是一个,单行注释
+/*这是一个注释*/，多行注释
+// 单行注释
+########注释mysql
+select 1+1;
+select 1+1; #这是一个注释,单行注释
+select 1+1; -- 这是一个注释，单行注释
+select 1+1; /*这是一个注释*/，多行注释
+select/*这是一个注释*/1+1;
+
+
+######dangqinacaouzo 
+select database();		#返回当前库
+select user();		放回当前用户
+
+
+ use dvwa			#不用分号;
+show tables;
+
+select now();		返回当前时间
+
+创建表：
+
+CREATE TABLE sc
+
+       (sno NUMBER(6),
+
+        cno  VARCHAR2(8),
+
+        grade NUMBER(3));  
+		
+create table ll(
+username varchar(20) default 1,
+id int(20) not null primary key auto_increment,
+password text not null );
+insert into admin valuse('',''); ‘’空字符不是null，可以正常插入。
+查勘表结构：desc demo；
+
+		插入数据：
+insert into  sc values("232","adsad","23");
+insert into admin values("admin","2131");
+查询数据：
+select * from admin where username = 'admin'；
+
+修改数据： 
+update 表名set 字段='';
+
+清空数据：
+delete from 表名 ;
+
+删除表：   
+ drop table 表名；
+ 
+ 查看数据库路径：
+ show global variables like"%datadir%";
+ ;
+ ###修改表结构使其自增长
+ desc admin;
+ ALTER TABLE user CHANGE COLUMN id id INT(8) NOT NULL AUTO_INCREMENT;
+ ###调整表中字段的顺序，
+  alter table admin modify id int(11)  first;
+  alter table admin modify id int(11) after username;
+  ALTER TABLE `ocs_reqs` ADD `sw_atom_ids` VARCHAR(255) NOT NULL AFTER `create_time`;
+ 
+ //添加自增长时 必须是key角色，不然报错。
+ alter table admin change column id id int(11) primary key auto_increment;
+ 
+ 
+ 
+ 备份数据：
+ 1）直接到对应路径下 鼠标复制粘贴。。但数据库的版本要一致。
+ 2） 导出数据。
+如果出现问题：ERROR 1290 (HY000): The MySQL server is running with the --secure-file-priv opti
+on so it cannot execute this statement，
+更改my.ini下的secure-file-priv字段的值为路径名secure_file_priv = "d:/"
+ select * from admin into outfile 'd:/1.sql';
+ select * from admin into outfile 'd:/1.php';
+ 
+ #############################
+ 
+ 
+PHP操作MySQL！！
+#############################2.php
+<?php 
+$lin = mysql_connect('127.0.0.1','root','root');
+var_dump($lin.'\n');
+$mysql_q =mysql_query("use demo1");
+var_dump($mysql_q);
+mysql_query("set names utf-8");
+#mysql_query("insert into admin values('xixi','1231321')");  //添加数据
+#mysql_query("delete from admin  where username='xixi'"); //删除数据
+#mysql_query("update admin set  username='111'");
+$list = mysql_query("select * from admin");
+$list_data=mysql_fetch_array($list,MYSQL_ASSOC);
+var_dump($list_data);
+?>
+#####################################
+
+<?php 
+$lin = mysql.connect('127.0.0.1','root','root');
+?>
+select database();		#返回当前库
+select user();		放回当前用户
+
+
+ use dvwa			#不用分号;
+show tables;
+
+select now();		返回当前时间
+#############连续输出。
+while($list_data=mysql_fetch_array($list,MYSQL_NUM)){
+	$arr[]=$list_data;
+}
+var_dump($arr);
+######连续输出2.x,友好输出。
+while($list_data=mysql_fetch_array($list,MYSQL_NUM)){
+	var_dump($list_data);
+	echo "<hr />";
+}
+
+$list = mysql_query("select * from admin");
+$list_data=mysql_fetch_array($list,MYSQL_ASSOC);
+var_dump($list_data);
+
+
+
+ #############
+ MYSQL_ASSOC:关联数组
+ MYSQL_NUM： 索引数组
+  echo mysql_errno(); //输出错误编码
+  echo"<hr />";
+  echo mysql_error();	// 输出错误
+  mysql_data_seek(): 用来设置集指针的位置。
+  mysql_num_rows() :取得结果集的长度（记录的个数）
+  mysql_affacted_rows() : 影响的行数
+  mysql_insert_id() : 返回当前插入数据得到的自增长id
+  
+###################
+自增长id：auto increment;
+create table admin(
+username varchar(20) not null primary key auto increment,
+password text not null default 1 comment '商品类型'
+)charset utf8 engine = innodb;  //字符编码utf-8，db类型内部
+/* 备份需要区分存储引擎：
+mylsam： 直接备份三个文件，如下，直接复制三个文件到其他数据库即可使用
+	test.frm
+	test.MYD
+	test.MYI
+	
+innodb ： 需要备份表的结构文件frm，还要备份数据存储文件ibdata1，
+，同一个数据库直接移动frm文件即可，不同数据可以需要覆盖 ibdata1 文件*/
+insert into admin values('',''); ‘’空字符不是null，可以正常插入。
+
+模糊查询： 搜索关键字
+select * from admin where username like "%qweq%";
+  

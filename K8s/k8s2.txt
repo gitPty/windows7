@@ -1,0 +1,543 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tomcat
+  namespace: default
+spec:
+  selector:
+    app: tomcat
+    release: canary
+  ports:
+  - name: http
+    targetPort: 8080
+    port: 8080
+  - name: ajp
+    targetPort: 8009
+    port: 8009
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tomcat-deploy
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: tomcat
+      release: canary
+  template:
+    metadata:
+      labels:
+        app: tomcat
+        release: canary
+    spec:
+      containers:
+      - name: tomcat
+        image: tomcat:8.5.32-jre8-alpine
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: ajp
+          containerPort: 8009
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+apiVersion: v1
+kind: Service 
+metadata:
+  name: ingress-nginx
+  namespace: ingress-nginx
+spec:
+  type: NodePort
+  ports:
+    - name: http #服务为http
+      port: 80   #service端口为80
+      targetPort: 80 #容器端口为80
+      protocol: TCP
+      nodePort: 30080
+    - name: https
+      port: 443 #service 端口为443
+      targetPort: 443 #容器端口为443
+      protocol: TCP
+      nodePort: 30443
+  selector:
+    app: ingress-nginx
+
+service-nodeport.yaml
+
+
+
+
+
+
+
+
+
+
+#######k8s 问题
+参考https://zhuanlan.zhihu.com/p/81666226
+1. 无法共享 命名空间 ，编辑daemon.json 增加一行
+	"default-ipc-mode": "shareable" 
+	注意，前面要加‘，’使得两个选项隔开，最后一个不能加‘，’ json格式。
+	
+2. 注意查看火狐上k8s收藏网页。
+
+
+
+########k8s问题：
+1. k8s持久化实现
+pv和pvc
+
+	
+2. k8s迁移实现， cordon 和drain 实现
+
+3.用户态和内核态区别。
+
+
+4,。k8s转发机制，iptables，ipvs。
+
+
+5.docker 中cgroup 机制。
+
+
+6.
+
+########################
+kubernetes 集群管理方式
+		1. 命令式 create，run,expose ,delete
+		2。 命令式配置文件 create -f /PATH/FILE ,delete -f ,replace  -f   ，替换修改。
+		3. 声明式配置文件: apply -f  ，删除也用apply（apply一个空文件），patch
+		
+18课。
+
+######################k8s的网络。
+	docker网络模型：
+		1）bridge	自有网络名称空间。
+		2） joined	共享龙外一个容器网络空间
+		3) opened	容器直接共享宿主机网络名称空间
+		4) none	不使用任何网络名称空间
+		
+		NAT机制实现。sNAT，dNAT ，源地址，目的地址转换
+		。
+	k8s网络通信：
+			1） 容器之间通信 同一个pod的多个容器通信，lo
+			2） Pod间通信 Pod IP <--> POD IP		ip通信。
+			3) Pod与service 通信： POD IP <--> Cluster IP   ipvs（只负载均衡替代不了iptables） 或iptables （还可以nat转换）通信。
+			4） Service 与集群外部客户端通信：
+			
+		CNI ： 
+			flannel ：简单。 地址分配，网络管理，    网络隔离（但flannel 不行。）network policy flannel不支持。vxlan（扩展vlan） 方式：做网络传输
+			calico ：复杂一点。性能高一点。三种都可以支持，可以和flannel搭配使用。
+			canel
+			kube-router
+			...
+			通信解决方案： 
+				虚拟网桥：bridge，叠加网络
+				多路复用 ： MacVLAN 机制。
+				硬件交换： SR-IOV  单根I/O虚拟化,虚拟出多个物理网卡
+			
+			kubelet ，/etc/cni/net.d/  下面加载网络插件。
+			
+			网卡：
+			flannel.1 ： 是flannel专用隧道，mtu1450，较之物理网卡mtu（最大传输单元）1500 留出50 专门做隧道开销。
+			cni0: 做隧道协议在本机通信的接口 ，只有建立pod 运行后才会出现。
+			
+			两个pod之间flannel隧道通信，使用VxLAN 协议通信（vxlan是扩展的虚拟局域网，类似四层隧道）
+			传输流： IP头部-> udp头部->vxlan头部 ->数据
+			
+			flannel支持多种后端
+				1. vxlan两种方式 ，vxlan和direct routing
+					1）vxlan：vxlan  vxlan是扩展的虚拟局域网，类似四层隧道
+					2） vxlan 有机制提升性能：Direct routing： 在同一个网段，则使用host GW，如果不在同一网段，隔着路由，则使用vxlan机制。
+				2. host-gw: Host Gateway,性能较好，但缺陷是要求所有节点，工作在同一个三层网段内。因为只有host GW。而且没有隔离
+					不能不同网段。
+				3. UDP： 普通udp报文，性能较差。仅支持前两种不支持的环境使用。
+			# flannel配置参数	
+				Network： flannel使用CIDR格式网络地址，为Pod配置网络功能
+					10.244.0.0/16 -> 
+						master:10.244.0.0/24
+						node:10.244.1.0/24
+						...
+						node255: 10.244.255.0/24
+					10.0.0.0/8
+						10.0.0.0/24
+						...
+						10.255.255.0/24  65556个
+				
+				SubnetLen：24 位掩码，把network切分子网供各节点使用，使用多长的掩码切分，默认24位。
+				
+				SubnetMin：10.244.10.0/24
+				
+				SubnetMax：10.244.100.0/24
+				
+				Backend： 指定pod之间通信方式， vxlan，host-gw，udp
+					vxlan： vxlan，direct routing
+					
+					
+			查看flannel的configMap。
+			#  kubectl get cm kube-flannel-cfg -o yaml -n kube-system
+			查看到network 10.244.0.0/16 ， Type 为vxlan
+			#ip route show  查看路由状态。去同网段的node节点上面看 ，主节点我这里不是同网段。
+			
+			# kubectl exec -it POD_NAME -- /bin/sh
+			# 进入pod中ping 另一个节点的 pod ，并tcpdump监听 icmp报文
+			在其中一个节点监听,-nn 不转换协议和端口号 -i cni0 可以查看cni0 桥。
+			# tcpdump -i cni0 -nn icmp	 在node节点上抓包，同网段之间使用directrouting ，不同网段还是自动降级为overlay。
+			#两个节点的pod之间通信原理， 隧道通信。
+			逻辑： 从cni0 进入隧道，从flannel.1 出隧道，在flannel.1 报文变为vlan报文，再从物理网卡ens160 出去到另外节点。
+			
+			#host-gw 不支持跨网段，。直接改type 为“host-gw”  
+				
+				
+			#calico 基于bgp协议，学习获得网络条目。 支持网络小，性能一般。
+	
+
+第二课： 	
+	master/node:
+		master: API server ,Scheduler ,controller-manager,etcd
+		node: kubelet ,docker ,
+	
+	Pod: ,Label ,Label Selector  添加元数据
+		Label: key=value
+		Label Selector : 
+		
+	Pod ： 
+		自主式Pod，创建后自主管理，节点故障，容器消失。
+		控制器管理的Pod：有生命周期的对象。
+			Replication Controller  ：副本控制器
+			ReplicaSet
+			Deployment
+			StatefulSet
+			DaemonSet
+			Job，Cronjob
+			e.g.:
+			HPA 控制器
+				
+		
+		
+		
+	？1: 将nginx的配置信息动态注入到pod中。
+第19课：
+######################
+		calico：192.168.0.0/16  较之flannel有支持网络策略
+		
+		canel ：https://docs.projectcalico.org/getting-started/kubernetes/flannel/flannel  
+		直接部署,已下载到flannel目录。
+		kubectl apply -f https://docs.projectcalico.org/manifests/canal.yaml
+	
+
+	PodSelector ： networkPolicy。
+	Egress ：出站规则，to,ports,外部端口
+	Ingress：进站规则 ，这里不是ingress控制器。 from , ports.自己端口。
+	
+	flannel 目录下创建 networkpolicy 目录，创建ingress-def.yaml
+# ingress-def.yaml 
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-ingress
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+########### 
+# 指定名称空间dev ，新建一个ns dev  ，kubectl create ns dev
+# 指定名称空间dev  -n 指定
+#kubectl apply -f ingress-def.yaml -n dev
+
+#创建pod-1.yml ,ymal,yaml ,后缀名好像并不影响pod创建，只要格式对就行。
+# kubectl apply -f pod-1.ym -n dev # 可以正常运行。 
+
+pod创建成功后 ，curl访问pod的IP ，因为定义了ingress 入站规则 没有定义具体ingress，默认全部拒绝 
+所以无法访问该IP curl 10.244.2.3 ，无法访问。
+创建一个ns prod ，继续在这个名称空间创建pod
+curl 访问prod 名称空间 的pod IP ，可以正常访问，新建立的未定义规则。curl 10.244.1.2
+Hello MyApp | Version: v1 | <a href="hostname.html">Pod Name</a>
+# ingress-def。yaml 
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-all-ingress
+spec:
+  podSelector: {}
+  ingress:
+  - {}
+  policyTypes:
+  - Ingress
+#######这里明确定义了ingress规则，虽然是空，但也有明确定义所有可进入， 所以可以访问pod。curl 10.244.2.3
+Hello MyApp | Version: v1 | <a href="hostname.html">Pod Name</a>
+运行完改回去。以便后续测试，
+
+##########################
+#  kubectl label pods pod1 app=myapp -n dev  # 给pod打一个标签。 
+
+#定义一个允许的yml ，地址格式必须是CIDR。
+#allow-netpol.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-myapp-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: myapp
+  ingress:
+  - from:
+    - ipBlock:
+        cidr: 10.244.0.0/16
+        except:
+        - 10.244.1.2/32
+    ports:
+    - protocol: TCP
+      port: 80
+	  
+##################egress 规则同上。 出站所有，进站要做规则。
+网络策略： 
+	名称空间： 
+		 拒绝所有出站，入站
+		 放行 所有目标本名称空间内的所有Pod；
+
+		 
+		 
+		 
+############第20 课		 
+node的 污点
+scheduler的调度。
+#############调度器 scheduler ，预选策略及优选函数
+kubelet 始终 watch 着 apiserver 的状态。获得pod的配置清单，调用docker启动容器
+service 对应着所有节点的ipvs或iptables 规则。
+apiserver 直接与etcd 存取。
+kube-proxy 监控service变化，转换为当前节点的ipvs或iptables规则；。
+
+数据交流要做序列化， json格式，proxy-buffers 工具。
+
+########pod资源
+当前占用
+资源需求
+资源限额
+
+######scheduler 三个阶段 ：计算三个阶段总得分。
+	预选 predicate
+	优选priority
+	选定select  ： 最高d得分的不止一个，随机选择一个。
+Node Affinity
+污点鉴定策略：
+
+	预选策略：
+		CheckNodeCondition:
+		GeneralPredicates
+			HostName: 检查Pod对象是否定义了pod.spec.hostname
+			PodFitsHostPorts: pods.spec.containers.ports.hostport
+			MatchNodeSelector: pod.spec.nodeSelector
+			PodFitsResources: 检查Pod资源需求能否被节点满足
+		NoDiskConflict: 检查Pod依赖的存储卷是否满足需求 （非默认策略，上面的都是默认策略）
+		PodToleratesNodeTaints: 检查pods.spec.tolerations可容忍的污点是否完全包含节点上的污点；，后续出现不可容忍污点会继承，不回去住pod。
+		PodToleratesNodeNoExecuteTaints: 随机调度更改节点污点后可能驱逐pod（非默认）
+		CheckNodeLabelPresence:	（非默认）
+		CheckServiceAffinity: 将相同service对象尽可能放在一起，使得同一service下的通信更快（非默认）
+		CheckNodeMemoryPressure:
+		
+	优选函数： 
+		LeastRequested：
+			（cpu-((capacity-sum(requested))*10/capacity)+memory((capacity-sum(requested))*10/capacity)/2）
+		BalancedResourceAllocation: 配合上一个使用
+			CPU和内存资源被占用相近的胜出：cpu和memory 得分最相近。
+		
+		NodePreferAvoidPods： 
+			节点的注解信息 “scheduler.alpha.kubernetes.io/preferAvoidPods” ,存在注解时 ，得分低，根据总得分。
+		TaintToleration： 将Pod对象的spec.tolerations列表项节点的taints列表项进行匹配度检查。匹配的条目越多，得分越低。、
+		
+		selectorSpreading: 散开到所有节点，已有pod的节点得分越低。
+		InterPodAffinity:	pod亲和性。
+		MostRequested：
+		NodeLabel：
+		ImageLocality: node 有镜像的得分高（根据镜像的体积大小之和计算）。
+	
+	select： 得分相同 ，随机选择一个。
+	
+	
+	高级调度设置机制：直接给定node类型。
+			节点选择器：nodeSelector， nodeName
+			节点亲和调度：nodeAffinity 
+				硬亲和：required
+				软亲和：preferred
+###########第21 课：
+pod的容忍度
+#################	
+标签，注解，污点。 labels ，annotations，taints。	
+	污点调度： taints ： key:value 定义污点
+	taint的effect 定义对Pod的排斥效果
+		NoSchedule: 仅影响调度过程，对现存pod无影响；
+		NoExecute： 影响调度，又影响现存pod对象；pod无法容忍的则被驱逐
+		PreferNoSchedule：
+
+#########第22课
+限制应用在容器上，不是pod ，只是称呼pod资源限制。
+容器资源限制：
+（cpu属于可压缩资源
+  mem 不可压缩资源）
+#############
+容器资源需求，资源限制。
+	# kubectl explain pods.spec.containers.resources
+	requests: 需求，最低保障，调度时确保对应节点node上有requests大小的资源可用
+	limits: 限额，硬限制 limits >= requests 	确保，运行时的资源限额。
+	
+	CPU： 
+		1颗虚拟CPU ,即逻辑CPU
+		1个核心 = 1000个毫核心 millicores
+			500 m = 0.5CPU 
+			cpu.limits=500m 
+			cpu.requests=200m 确保被调度的目标节点上要有requests大小的资源可用
+	内存：
+		E,P,T,G,M,K
+		Ei,Pi,Ti,Gi,Mi,Ki
+
+	QoS: 当设置了资源限额，会被分配QoS 类别，有三类
+		Guranteed: 每个容器都设置了，确保，优先级最高。服务器资源不够时也确保。
+			同时设置CPU和内存的requests和limits
+				cpu.limits=cpu.requests
+				memory.limits=memory。request
+		Burstable: 至少有一个容器设置了cpu，内存的requests属性。优先级中等
+			
+		BestEffort: 没有任何一个容器设置了requests或者limits 属性。最低优先级别。当资源不够用时候
+			besteffort中的容器会被回收资源，以确保优先级高的可以正常运行。
+	资源清理： 除了上述的QoS外 ，其他对比方式如下。	
+		当资源不够用时， 已占用量 与需求量的比例 更大的pod 将被删除
+		即 目前在用的 资源与requests资源 的比例 ，看是否已经到了需求量 来判断。
+		
+	heapster： 
+		 收集节点的指标数据，使用kubectl  top 命令的关键组件。每个节点上的c-advisor收集的所有数据都主动向heapster主动报道，
+	让heapster存储这些数据。使用缓存去存储数据，想要持久化存储，还要一个influxDB 的数据库。想要查看历史数据，还要借助grafna
+	来实现，grafna将influxDB作为数据源，进而可以分析influxDB中的 数据 。
+	
+	早些时候的版本 kubelet 的 插件 c-advisor 负责收集当前节点的各个pod的各个容器的资源指标占用量。当前已被整合到kubelet内部。监听4194端口
+	rbac已经定义，所以还要设置这三个组件的 rbac验证。
+	influxDB：持续数据库系统。默认pod并没有自动启动存储卷 ，所以生产环境要自定义。
+	grafna：
+		
+	heapster 架构本身不够优秀 k8s 1.11 开始废弃，v1.12彻底废弃。
+	部署influxDB。 
+	
+	
+	CRD： customresourcedefinition 自定义指标。 k8s 的v1.6 引入该指标。
+	aggregator ： 既能获得apiserver的请求指标，也能获得自定义的指标资源，做一个代理。
+		获取单独的资源指标，需要部署一个metrics-server。
+	HPA： horizontal pod autoscaler ：水平自动pod伸缩器。
+	
+	
+	资源指标：
+		metrics-server ： 收集cadvisor 的指标数据
+	
+	自定义指标： prometheus  ：即作为监控也作为监控的数据源
+		k8s-prometheus-adapter : 把监控数据转换为监控格式。
+	
+	新一代监控系统的架构：	
+		核心指标流水线： 由kubelet ，metrics-server以及由API server提供的API组成；
+			度量标准： CPU （累计使用率），内存（实时使用率）。pod的资源占用率和容器的磁盘占用率 
+		
+		监控指标流水线：用于从系统手机各种指标数据 提供给用户，存储，系统以及HPA。 
+			指标包含： 核心指标和非核心指标。 非核心指标本身不能被k8s所解析。
+		
+	metrics-server: API server 托管运行的一个pod。 添加aggregator 聚合器，  聚合第三方或自定义的API server。
+		/apis/metrics.k8s.io/v1beta1 
+		# kubectl api-versions 查看当前的apiserver。
+		
+	架构图： 	
+			 Custom Metrics API	： 自定义指标
+			 k8s-prometheus-adapter ： 获取k8s-state 的指标 ，并聚合到aggregator 层。
+			 kube-state-metrics		：对数据转换，转换为k8s识别的格式
+			 
+			 PromQL			：sql语言
+			 Prometheus		：监控 内部自带nosql 
+			 
+			 
+			 node_exporter  : 将容器内部数据暴露出来。使得指标可以被访问
+		
+	helm 控制台 ：
+		chart 仓库 ，values。
+	helm客户端 -> tiller 服务端（ 运行于k8s上） -> apiserver -> k8s cluster	
+		chart 模板下载
+		chart部署后 叫release。
+	核心术语：
+		Chart： 一个helm程序包
+		Repository： Chart 仓库， http/https服务器。
+		Release： 特定Chart实例化后部署于目标集群上的实例。
+		
+		Chart -> Config （values）-> Release
+	程序架构：
+		helm ： 客户端 管理本地Chart仓库 ，基于go语言，使用grpc协议与tiller交互，发送chart，实现安装，查询，卸载，等操作。
+		tiller： 服务端 运行在目标集群上。接受helm发送的charts 和config，合并成release；
+		
+########第25课
+######创建自定义Chart 及部署efk日志系统。
+ 查看： https://hub.kubeapps.com/charts
+ 添加incubator 仓库： https://kubernetes-charts-incubator.storage.googleapis.com
+ kubectl logs 只能获取活着的pod的日志，死掉的pod 不能看，所以需要提前收集日志。
+ 四大附件： addons。
+ aggregator 聚合器，聚合自定义的apiserver。
+ metrics-server 提供指标
+ prometheus： 提供更加详细的指标，并可以监控
+ dashboard： 提供图形化。
+ ELK:
+	E: elasticsearch   搜索引擎
+	L: logstash   #搜集节点上的日志，并转换格式为json格式后注入到elasticsearch。，可以使用filebeat这个轻量级工具替代收集日志，再转换为json格式，发给logstash server。
+		logstash太过重量级。
+		收集日志的代理程序，每个节点都部署一个logstash代理 ，发送给logstash server ，再发送给elasticsearch，中间可以添加一个消息队列。
+		ELFK或者ELFK  即ELK + filebeat。
+	K：kibana 图形化。
+ /var/log -> /var/log/containers 日志保存路径。
+ EFK： 
+	E: elasticsearch #存储日志数据
+	F: fluentd   #日志收集。 可以部署为daemonset 放在每个节点。 分为master和data 节点，master负责写，data 节点负责查询和构建索引。
+		用data节点处理索引等重量级任务，master层负责做轻量级任务，引入流量。都要使用pv。
+		除此之外，还有 client 节点即ingest 节点： 负责收集任何的日志收集工具 相当于logstash server的功能。日志统一生成特定格式以后发给master节点。
+	K: kibana ： 图形化
+#### 
+x-pack： 超级包 ELK 打包在一起的一个包。
+helm 安装适用于生产环境。
+
+###注意。
+基于节点布置统一插件，做日志收集，而不是sidecars 在pod中跑两个containers，也不是containers中跑两个进程。
+/var/log	->	/var/log/containers
+fluentd 可以部署为daemon-set 放在节点上。
+	
+master节点
+
+
+	
+		
+		
+		
+		
+########第26 课		
+########CI 、CD
+CI： Containers Intergration  ：持续集成
+CD： Containers dilivery  ：持续交付
+CD： Containers Deployment ： 持续部署
+		
+		
+		
+			

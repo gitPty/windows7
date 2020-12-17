@@ -1,0 +1,72 @@
+#!/bin/bash
+export PATH /sbin:/usr/sbin:/usr/bin
+###eth0 连接外网-ppp0
+###eth1 连接内网12.168.0.0/24
+
+#加载相关模块
+
+modprobe iptable_nat
+modprobe ip_nat_ftp
+modprobe ip_nat_irc
+modprobe ip_conntrack
+modprobe ip_conntrack_ftp
+modprobe ip_conntrack_irc
+modprobe ipt_limit
+echo 1
+>;/proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
+echo 0
+>;/proc/sys/net/ipv4/conf/all/accept_source_route
+ 
+echo 0
+>;/proc/sys/net/ipv4/conf/all/accept_redirects
+
+echo 1
+>;/proc/sys/net/ipv4/icmp_ignore_bogus_error_responses
+
+echo 1 >;/proc/sys/net/ipv4/conf/all/log_marians
+
+echo 1 >;/proc/sys/net/ipv4/tcp_syncookies
+
+iptables -F 
+iptables -X
+iptables -Z
+
+
+###允许本地回路？ loopback -ALLOW unlimited traffic
+
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT
+
+
+## 防止SYN泛洪？SYN-Flooding Protection
+iptables -N syn-flood
+iptables -A INPUT -i ppp0 -p tcp --syn -j syn-flood
+iptables -A syn-flood -m limit --limit 1/s --limit-burst 4 -j RETURN
+
+iptables -A syn-flood -j ACCEPT
+
+
+###允许HTTP的规则
+iptables -A INPUT -i ppp0 -p tcp -s 0/0 --sport 80 -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -i ppp0 -p tcp -s 0/0 --sport 443 -m state --state ESTABLISHE,RELATED -j ACCEPT
+
+iptables -A INPUT -i ppp0 -p tcp -d 0/0 --dport 80 -j ACCEPT
+iptables -A INPUT -i ppp0 -p tcp -d 0/0 --dport 443 -j ACCEPT
+
+#允许DNS
+iptables -A INPUT -i ppp0 -p udp -s 0/0 --sport 53 -m state --state ESTABLISHED -j ACCEPT
+iptables -A INPUT -i ppp0 -p udp -d 0/0 --dport 53 -j ACCEPT
+
+##IP 包流量限制
+iptables -A INPUT -f -m limit --limit 100/s --limit-burst 100 -j ACCEPT 
+iptables -A INPUT -i eth0 -p icmp -j DROP
+
+
+
+#允许SSH
+iptables -A INPUT -p tcp -s ip1/32 --dport 22 -j ACCEPT
+iptables -A INPUT -p tcp -s ip2/32 --dport 22 -j ACCEPT
+
+###其他情况不允许
+iptables -A INPUT -i eth0 -j DROP
+

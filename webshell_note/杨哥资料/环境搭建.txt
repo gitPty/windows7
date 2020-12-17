@@ -1,0 +1,25 @@
+owasp下载:
+https://sourceforge.net/projects/owaspbwa/files/1.2/OWASP_Broken_Web_Apps_VM_1.2.zip/download
+测试渗透kali下载:
+https://images.offensive-security.com/virtual-images/kali-linux-2018.2-vm-amd64.zip
+
+安装vmware软件直接导入配置文件即可.
+
+配置网络连接,局域网访问vm虚机.
+参考网页:
+https://blog.csdn.net/u012540337/article/details/16966223
+
+配置网络连接,添加主机暴露端口给虚拟机器,e.g.:添加host 8000 端口
+	暴露给虚机 ip: 192.168.218.128 端口 80 ,虚机服务所在端口
+	确认,访问host主机8000  http://127.0.0.1:8000端口即可访问http://192.168.218.128:80
+	局域网http://:10.148.52.202:8000
+如果局域网使用代理访问,则要在代理中添加例外,不使用代理的选项,192.168.218.*;
+
+
+
+owasp教程：https://www.bilibili.com/video/BV1uE41177Ky?p=9
+
+bilibili：bzhack
+
+教程上：https://www.bilibili.com/video/av80901377
+教程下：https://www.bilibili.com/video/av82008804/

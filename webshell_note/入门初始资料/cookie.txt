@@ -1,0 +1,53 @@
+#########session 与cookie
+如果 cookie 没有phpsessid ，服务器就会定义一个phpsessid
+如果请求网站有phpsessid ，服务器看到phpsessid后，
+获取phpsessid的内容去找sessionID的内容名字的文件。
+########无cookie
+<?php
+echo "hello world";
+
+?>
+#####建立会话，生成cookie
+<?php
+echo "hello world";
+session_start();
+?>
+
+######自定义session名字，修改cookie的phpsessid即可e.g. 改为112233。
+<?php
+echo "hello world";
+session_start();
+$_SESSION['demo']='123';  // 生成的session 内容
+?>
+则生成sess_112233文件，文件内容是demo ：123
+demo|s:3:"123";
+其中s ：3代表string ，length=3
+##########
+在phpstudy中打开配置文件
+查看session文件，打开php.ini搜索session.save_path
+找到session保存的位置。如下
+
+session.save_path="D:\phpStudy\PHPTutorial\tmp\tmp"
+
+
+
+################
+################
+
+cookie 跨域
+	1) 默认的，cookie只能对当前域名（完整域名：有效的二级域名）有效
+	2）cookie跨域，指的是允许cookie在不同的二级域名之间共享（一级域名一致）
+	3) PHP设置cookie Setcookie（）函数
+	4）Setcookie('名字','值',’有效时间‘,'有效路径.','有效域');
+	5）Setcookie('PHPSESSID',session_id(),time()+100,'/','xss.cn');
+
+#######index.php
+<?php
+Setcookie('name','xindong',time(),'有效路径.','有效域');
+?>
+<?php
+Setcookie('name','xindong',time()+100,'/','10.148.52.202'); //100s后失效。
+?>
+直接访问10.148.52.202/index.php，查看cookie，发现name 已经改变为xindong字符串。expire time为100s之后
+
+########

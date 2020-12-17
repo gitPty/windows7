@@ -1,0 +1,173 @@
+#############
+iptables
+############3
+
+-p :协议
+-m: 模块
+
+
+##主机不做raw表的连接追踪
+iptables -t raw -A PREROUTING -d 10.148.52.202 -p tcp --dport 80  -j NOTRACK
+ 1745  iptables -t raw -A PREROUTING -s 10.148.52.202 -p tcp --sport 80  -j NOTRACK
+ 1746  iptables -A FORWARD -m state --state UNTRACKED -j ACCEPT
+ 1747  iptables -L
+ 1748  iptables -t raw -A PREROUTING -s 10.148.52.202/32 -p tcp --sport 80  -j NOTRACK
+ 1749  iptables -L
+#查看状态
+ 1751  iptables -t raw -D PREROUTING -s 10.148.52.202/32 -p tcp --sport 80  -j NOTRACK
+ 1752  iptables -L -t raw
+ 
+ 
+ ##源主机IP对应，  状态是NEW，EST 的端口是123,110 的 通过 multiport模块是匹配个不相邻的端口，加端口要加-p 加协议
+ 1753  iptables -A INPUT-s 10.148.52.202/32 -m state --state NEW,ESTABLISHED -p tcp -m multiport --dport 123,110 -j ACCEPT
+ 1754  iptables -A INPUT -s 10.148.52.202/32 -m state --state NEW,ESTABLISHED -p tcp -m multiport --dport 123,110 -j ACCEPT
+ 1755  iptables -L
+ 1756  iptables -A INPUT -s 10.148.52.202/32 -m state --state NEW,ESTABLISHED,RELATE -j ACCEPT
+ 1757  iptables -A INPUT -s 10.148.52.202/32 -m state --state NEW,ESTABLISHED,RELATE -j ACCEP
+ 1758  iptables -A INPUT -s 10.148.52.202/32 -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+ 1759  iptables -L
+ 1760  iptables -D INPUT -s 10.148.52.202/32 -m state --state NEW,ESTABLISHED,RELATE -j ACCEPT
+ 1761  iptables -L
+########DROP 不接受，要大写。
+ 1762  iptables -A INPUR -s 0/0 -m state --state NEW -p tcp -m multiport --dport 1230,110 -j DROP
+ 1763  iptables -A INPUT -s 0/0 -m state --state NEW -p tcp -m multiport --dport 1230,110 -j DROP
+ 1764  iptables -L
+ 
+ 
+ ###默认修改filter表
+ ###  ！代表取反 ，非这个的主机全部drop，代表只有这个网段主机才能进。dport ： 目的端口，sport： 源端口  
+ 1775  iptables -A INPUT  ! -s 10.148.52.202/24    -m state --state NEW -p tcp -m multiport --dport 1230,110 -j DROP
+ 1776  iptables -L
+ 1777  iptables -R INPUT 1  -s  10.148.52.202 -p tcp --dport 22 -j accept
+ 1778  iptables -R INPUT 1  -s  10.148.52.202 -p tcp --dport 22 -j ACCEPT
+ 1779  iptables -L
+ 
+ 
+ #####详细带序号查看filter表规则
+ 1780  iptables -t filter -L INPUT -vn
+ 
+ 
+ 
+ ###-F 清空
+ 1781  iptables -t nat -F
+ ###
+ 
+ ######DNAT 详解  PNAT 又叫端口重定向或端口映射。
+  互联网主机C想访问企业内部的web服务器A，但A的地址是私有地址，无法直接访问。此时，
+  C可以访问防火墙的公网地址，C的请求数据包（源：ipC，目标：ipB）到达防火墙B后，
+  在B的prerouting上将请求数据包的目标地址进行修改，并将数据包（源：ipC，目标：ipA）发送给A。
+  A收到后进行回复发送响应包（源：ipA，目的ipC）到防火墙，防火墙收到后对数据包源地址进行修改，
+  并将响应包（源：ipB，目标：ipC）给C。利用这种机制可以将企业内部的服务发布到互联网。
+
+在这个过程中，修改了请求报文的目标地址，叫做DNAT（destination NAT POSTROUTING），用于互联网访问局域网。
+必须在防火墙的prerouting上设置修改目标地址的防火墙策略，因为若不在此处修改，
+请求数据包通过prerouting和路由表后，由于目标主机是本机，就会将数据包发往input，进而被发往本地进程
+
+####DNAT修改了目的地址
+ ###做DNAT， 在nat的PREROUTING 链 将 目的Ip是 192.168.1.1 端口是80 的 转到为 10.148.52.202 :80 去
+ 1782  iptables -t nat -A PREROUTING -d 192.168.1.1 -p tcp --dport 80 -j DNAT --to 10.148.52.202：80
+ ###-A 是append ，-D 是删除，-F是清空所有表所有规则
+ 1783  iptables -t nat -D PREROUTING -d 192.168.1.1 -p tcp --dport 80 -j DNAT --to 10.148.52.202:80
+ 
+ ####PNATPNAT 又叫端口重定向或端口映射。
+ PNAT：以http服务为例，外网用户要访问内网的http服务请求的端口是80，
+ 而内网的httpd服务工作在非标准的端口8080上，
+ 此时用来作为DNAT转换的网关只将ip做了转换没有将端口进行转换就将报文发给了内网的web服务器， 
+ 而内网服务器的80端口没有http服务，
+ 此时内网的http服务器就需要将发送给本机80端口的数据报文重新重定向至本机的8080端口，
+ 这就叫做PNAT也叫端口重定向或者端口映射
+ 
+ 1799  iptables -t nat -A PREROUTING -d 192.168.218.1 -p tcp  --dport 90  -j DNAT  --to 10.148.52.202:800
+ 1800  iptables -t nat -A PREROUTING -d 192.168.218.1 --dport 90  -j DNAT  --to 10.148.52.202:800
+ 1802  iptables -t nat -D PREROUTING -d 192.168.218.1 --dport 90  -j DNAT  --to 10.148.52.202:800
+ 1803  iptables -t nat -D PREROUTING -d 192.168.218.1 -p tcp --dport 90  -j DNAT  --to 10.148.52.202:800
+ 1804  iptables -t nat -A  PREROUTING -d 192.168.218.1 -p tcp --dport 80  -j DNAT  --to 10.148.52.202:800
+ 
+ 1787  ping 10.148.52.202
+ 1788  ping 192.168.218.1
+ 
+ 
+ ###PNAT 又叫端口重定向或端口映射。
+ ############SNAT 详解
+ 
+ 
+ #企业内部的主机A想访问互联网上的主机C，首先将请求数据包（源：ipA，目标：ipC）发送到防火墙所在主机B，
+ B收到后将数据包源地址改为本机公网网卡的ip（源：ipA，目标：ipB），然后经互联网发送给C；
+ C收到后将回应包（源：ipC，目标：ipB）转发给C的路由器，
+ 经互联网将回应包转发给B，B收到回应包后修改其目的地址，
+ 即回应包改为（源：ipC，目标：ipA）然后将数据包转发给A。
+
+在这个过程中，修改了请求报文的源地址，叫做SNAT（source NAT POSTROUTING），用于局域网访问互联网。
+
+不能在防火墙B的prerouting链上设置转换源地址的防火墙策略，
+因为若在B的prerouting链上设置转换源地址的防火墙策略，此时还未检查路由表，
+还不知道要到达数据包中目标主机需经过本机的哪个网卡接口，
+即还不知道需将源地址替换为哪个公网网卡的ip，需在postrouting设置转换源地址的防火墙策略。
+
+  若企业内部有A、C、D等主机都要访问互联网，
+A 请求数据包源地址 ip1端口12345      替换为   B公网ip端口12345
+C请求数据包源地址 ip2端口23456     替换为    B公网ip端口23456 
+D 请求数据包源地址 ip3端口23456     替换为    B公网ip端口24414 
+
+
+ SNAT中，将请求数据包的源地址替换时，端口一般不替换，即A用什么端口B就用什么端口，
+ 但若产生冲突，即C、D使用同一随机端口，B可以将端口替换为其他空闲端口，
+ 否则当C或D的响应包到达时，B就不知道替换为C还是D了，端口和IP都进行修改，称为PNAT。
+#########sNAT修改了源地址。
+ ####做SNAT ，在nat表的POSTROUTING 链 将目的IP是192.168.218.1 的包的 SNAT源地址 修改为10.148.52.202
+ 1789  iptables -t nat -A POSTROUTING -d 192.168.218.1 -j SNAT --to 10.148.52.202
+ 1790  iptables -t nat -D POSTROUTING -d 10.148.52.202 -j SNAT --to 192.168.218.1 
+ 1791  ping 10.148.52.202
+ 1792  ping  192.168.218.1
+ 1793  iptables -t nat -D  POSTROUTING -d 192.168.218.1 -j SNAT --to 10.148.52.202
+ 1794* 
+
+ 
+ 
+ ###防止IP欺骗
+
+ 1805  iptables -A INPUT -d 192.168.218.0/255.255.255.0 -i eth1 -j DROP
+ 1806  iptables -A INPUT -s 192.168.218.0/255.255.255.0 -i eth1 -j DROP
+ #其中OUTPUT 不能-i 指定网络接口 ，只能-o 输出。Eth1
+ 1809  iptables -A OUTPUT -d 192.168.218.0/255.255.255.0 -o eth1 -j DROP
+ 1810  iptables -A OUTPUT -s 192.168.218.128/255.255.255.0 -o eth1 -j DROP
+ 
+ 
+ 
+ ####防止广播IP进入局域网。
+ 1811  iptables -A INPUT -s 255.255.255.255 -i ech0 -j DROP
+ 1812  iptables -A INPUT -s 224.0.0.0/224.0.0.0 -i eth0 -j DROP
+ 1813  iptables -A INPUT -d 0.0.0.0 -i eth0 -j DROP
+ 
+ 
+ 
+ ####屏蔽5000 端口，前面两个是让源端口5000的进不来，后两个是目的端口5000的出不去。
+ 
+ 1814  iptables -A INPUT -p tcp -m tcp --sport 5000 -j DROP
+ 1815  iptables -A INPUT -p udp -m udp --sport 5000 -j DROP
+ 1816  iptables -A OUTPUT -p tcp -m tcp --dport 5000 -j DROP
+ 1817  iptables -A OUTPUT -p udp -m udp --dport 5000 -j DROP
+ 
+ 
+ 
+ 
+ ###防止Internet用户访问MYSQL 服务器 3306 端口
+ 1818  iptables -A INPUT -s 211.148.130.129 -i eth1 -p tcp -m tcp --dport 3306 -j DROP
+ 1819  iptables -A INPUT -s 192.168.20.0/255.255.255.0 -i eth0 -p tcp -m tcp --dport 3306 -j ACCEPT
+ 1820  iptables -A INPUT -s 211.148.130.128/255.255.255.240 -i eth1 -p tcp -m tcp --dport 3306 -j ACCEPT
+ 1821  iptables -A INPUT -p tcp -m tcp --dport 3306 -j DROP 
+ 
+ 
+ 
+ ########REJECT 类似DROP ，但是，向发送该包的主机恢复--reject-with 指定的内容，可以很好地隐藏防火墙的存在。
+ 1822  iptables -A FORWARD -p TCP --dport 22 -j REJECT --reject-with tcp-reset
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 

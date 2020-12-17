@@ -1,0 +1,206 @@
+###########web客户端
+JS  -> DOM  ->   BOM
+##########dom 和bom 一个控制HTML，一个控制浏览器
+
+#加载JS方式：
+#1，html的<script></script>之间eg如下
+
+#2. html的事件属性中，eg: onclick
+<script>
+function changetext(id)
+{
+	id.innerHTML="谢谢!";
+}
+</script>
+<h1 onclick="changetext(this)">请点击该文本</h1>
+
+#3. console控制台输入代码
+
+
+示例网址：dun.163.com  ,动态效果
+###########
+# JS的语法
+ECMAScript 标准及其包含的语法规范，借用C/JAVA 的语法
+###
+
+#######JS -》 html DOM
+
+<p id="intro">hello world</p>
+x=document.getElemenById("intro")
+alert('id为intro元素的文本是： '+x.innerHTML);
+
+#############JS -》 html DOM
+；静态
+#获取一个html元素内容？
+1.getElemenById(); 通过id获取元素
+2.通过.innerHTML :获取内容
+alert()函数用来弹出警示信息
+
+##修改一个元素
+1.通过id获取元素
+2.通过.innerHTML直接赋值元素。
+
+
+#通过iframe框架修改html代码
+document.getElemenById("").innerHTML=<iframe src='https://dun.163.com'></iframe>
+###################
+
+############JS -> BOM
+动态获取，eg：：时间
+
+document.write(Date());  //直接写入当前时间
+
+###加入互动，如上的
+<html>
+<head>
+<title>为专业</title>
+</head>
+<body>
+<p id="intro">hello world!</p>
+<script>
+function changetext(id)
+{
+id.innerHTML="谢谢!";
+}
+</script>
+<h1 onclick="changetext(this)">请点击该文本</h1>
+</body>
+</html>
+
+会改变h1标签的内容为“谢谢”
+
+
+########警告函数：
+警告弹窗alert()
+确认弹窗confirm()
+提示弹窗prompt()
+
+
+如何获取用户的cookie.
+document.cookie()
+document.cookie="cookie=test"		#修改cookie，add
+
+#获取、控制用户的页面信息
+window.location
+window.location.href="http://aq.163.com"
+###
+##获取本机浏览器版本等信息
+window.navigator.userAgent
+window.navigator
+#####
+		操作窗口
+		window.open("http://aq.163.com")
+		window.close()
+
+#以上使用JS获取浏览器信息的操作就是JS BOM ，BOM ： 浏览器对象模型（Browser Object Model）
+
+
+
+			
+				
+			
+########web服务端
+变化历程： web1.0,2.0
+web服务端框架结构
+浏览器 -》 服务器 -》 语言解释器 -》 数据库
+操作系统 -》web 服务 -》 解释执行环境 -》 数据库服务
+## 后三个通过配置文件链接
+
+#静态流程
+.html或.htm :静态文件，浏览器请求服务器，服务器查询请求文件位置并发送给客户端。
+#动态流程，.php静态脚本文件，
+.php文件通过服务端的语言解释器执行为html 传递给服务器，服务器将文件发给客户端
+
+
+e.g.:环境类型
+windows server： IIS + ASP（.NET) + SQLServer    #.NET
+Linux: Apache +PHP +MySQL				#LAMP
+UNIX/Windows : Tomcat + JSP + Oracle 		#J2EE
+实验环境：
+
+下载  phpStudy
+
+
+安装在C盘，省的加环境变量
+
+进入mysql： mysql -hlocalhost -urroot -p   默认密码root
+网页输入： http://localhost/phpMyAdmin/
+http://localhost/l.php   	查看探针主页
+  
+
+设置自定义域名： hosts
+多种URL方式访问首页
+创建一个php网页
+
+
+
+#############SQL语言
+
+SQL语言用来操作数据库
+
+#数据库搭建过程
+数据库： 软件（mysql），服务接口（端口、本地），用户（root)
+		数据库，数据表，数据
+######
+##SQL语句对大小写不敏感；分号作为语句结束，程序中会自动补充。
+
+CreaTe Database websecurity;	要加分号
+show databases;		要加分号
+use websecurity; // 可以不加分号
+drop database websecurity; 	要加分号
+
+表： 键值，行，列
+
+e.g.：
+create table teacher(
+	id int(4) not null primary key auto_increment,
+	name char(20) not null,
+	sex char(20) not null,
+	addr char(20) not null
+);
+show tables; //要加分号
+
+#插入
+insert into teacher(name,sex,addr) values('le','male','honghai');
+insert into teacher(name,sex,addr) values('ab','female','hangzhou');
+insert into teacher(name,sex,addr) values('jo','male','shyhai');
+insert into teacher(name,sex,addr) values('ma','female','peiking');
+#删除
+delete from teacher where id=1;
+#修改
+update teacher set name = 'lenmm' where id=1
+#查询
+select * from teacher;		加分号
+增删改查操作：
+## order by 排序
+select * from teacher order by name;
+
+
+#创建student 表格。
+使用source  path 命令导入本地文件，直接鼠标拖拽，多加一个反斜杠转义，双斜杠
+#union 语句联合查询,不会显示重复的数据，重复的使用union all
+select name from teacher union select name from student;
+
+
+
+
+
+
+########注释
+select 1+1;
+select 1+1; #这是一个注释,单行注释
+select 1+1; -- 这是一个注释，单行注释
+select 1+1; /*这是一个注释*/，多行注释
+select/*这是一个注释*/1+1;
+
+C:\Users\Administrator\Downloads\student.sql
+
+
+
+############
+sql常用函数
+database（）；
+current_user()；
+load_file();
+version();版本信息
+into+outfile 写入文件

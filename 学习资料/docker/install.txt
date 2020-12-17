@@ -1,0 +1,706 @@
+#进入/etc/yum.repo.d/
+wget https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/centos/docker-ce.repo
+ ls docker-ce.repo 
+ #在此处将源替换为清华大学源
+ vim docker-ce.repo 
+ #之后用替换语句:
+ :%@https://docker.com@https://mirrors.tuna.tsinghua.edu.cn/docker-ce@
+ #以@为分隔符,前半部分是要替换的语句,后面是替换成什么.
+ yum repolist
+ yum install docker-ce   狂点y,4.127出不去,99.64
+ 安装后使用docker version  /  docker info查看状态
+ 
+ 
+ 
+ 
+ #编辑daemon.json文件,配置docker加速器
+ mkdir /etc/docker
+ vim /etc/docker/daemon.json
+ #查看当前docker代理信息
+ systemctl show --property=Environment docker
+ #创建docker专用代理,因为本地网络出不去使用代理
+ mkdir -p /etc/systemd/system/docker.service.d
+ vim /etc/systemd/system/docker.service.d/https-proxy.conf 
+#编辑该代理配置文件. 
+[Service]
+Environment="HTTP_PROXY=http://10.134.99.64:66"
+#注意此处不要用https,不然会有那个tsl信息警告无法连接.
+#刷新配置,重启docker
+systemctl daemon-reload
+ systemctl restart docker
+ 
+ #配置好代理后查看是否可以从docker.hub拉取镜像文件
+ 
+ docker search nginx
+ docker pull nginx:1.14-alpine
+
+ 
+ 1098  docker image ls
+ #busybox是个专用伪装的,kernel+java.exe+busybox~安卓
+ 1099  docker image pull busybox:latest
+ 1100  docker image ls
+ 1101  docker ps
+ 1102  docker ps -a
+ 1103  docker image ls
+ 1104  docker image ls --help
+ 1105  docker image ls --no-trunc
+ 1106  docker container --help
+ 
+ 
+ #查看网络
+ 1110  docker network
+ 1111  docker network ls
+ 1112  ip a
+ 
+ 
+ #如果不指定latest标签,默认是最新的
+ docker run --name b1 -it busybox
+ 1113  docker run --name b1 -it busybox:latest
+ 
+ 
+ 
+ #alpine为最小化的版本
+ docker run --name web1 -d nginx:1.14-alpine
+ 1114  docker ps -a
+ 1115  docker exec -it b1
+ 1116  docker exec -it b1 /bin/sh
+ 1117  docker ps -a
+ 1118  docker start b1
+
+ 
+ 
+ #此处kill与stop的区别为sigmoid不同,kill -9,stop -15
+ 1122  docker stop b1
+ 1059  docker stop dd16560ac9b4 #根据id号关闭
+ 1060  docker stop web1			#根据名称关闭
+
+
+ 
+ #绕过容器边界进入容器,并使用/bin/sh
+ 1127  docker exec -it b1  /bin/sh
+
+ 
+ #直接进入shell,不绕过
+ 1131  docker start -ai b1
+
+ 
+ #查看容器信息
+ 1134  docker inspect web1
+ 
+ 
+ #查看docker中运行的服务状态,在此之前因为默认172.17网路,故先在环境变量里关闭宿主机的代理
+ 1135  curl 172.17.0.2
+ 1136  curl 127.0.0.1
+ 1137  docker ps -a
+ 
+ #查看宿主机环境变量,并在当前控制台设置临时失效,可以多开控制台进行测试.
+ 1138  env
+ 1139  unset http_proxy
+ 1140  unset https_proxy
+ 1141  env
+ 
+ 
+ 1142  docker ps -a
+ 1143  docker inspect web1 |grep 80
+ 1144  docker inspect web1 |grep IP
+ 1145  curl 172.17.0.2
+ 
+ 重新使用环境变量.
+ 1146  source /etc/profile
+ 
+ 
+ #测试
+ 1147  env
+ 1148  unset http_proxy
+ 1149  unset https_proxy
+ 1150  curl 172.17.0.2
+ 1151  curl 172.17.0.3
+ 1152* curl 10.134.196.2
+ 1153  curl 172.17.0.2
+
+#运行docker,如果本地没有镜像文件,会自动走代理拉取
+docker run --name kvstor1 -d redis:3.3-alpine
+-d选项是detach, 在当前控制台的后台运行,不进入交互式界面.
+ #从指定仓库拉取特定文件.
+ docker pull quay.io/coreos/flannel:v0.10.0-amd64
+ 
+ 
+ #docker打标签tag,为镜像指明标签名仓库名,要指明ID号
+ 1003  docker tag d68e6feafbbc mageedu/bbox_httpd
+ 1004  docker tag d68e6feafbbc mageedu/bbox_httpd:v0.1-1
+  #此处为已有标签新增一个后面内容(mageedu/bbox_httpd:latest2)的标签
+ 1006  docker tag mageedu/bbox_httpd:v0.1-1 mageedu/bbox_httpd:latest2
+
+ 1009  docker image rm mageedu/bbox_httpd:latest
+ 1015  docker run --name t1 -it mageedu/bbox_httpd:v0.1-1
+ 
+ #完成一个镜像的修改-p是停止b1容器,防止提交过程中发生改变,-c是传命令CMD大写,直接在镜像内运行httpd,-a是作者名
+docker commit -a "mageedu <mageedu.com>" -c 'CMD ["/bin/httpd","-f","-h","/data/html"]' -p b1 mageedu/httpd:v0.2
+	docker run --name t2  mageedu/httpd:v0.2
+	
+	
+#如何完成本地上传至dockerhub内,先注册一个hub账号,宿主机运行docker login,不指定服务器则默认为dockerhub
+ 1018  docker login -u dockerptu	#这个是我注册的user账号,hashcode:99~
+ 输入后直接登录
+ 
+ #dockerhub上建立一个仓库命名为httpd,真正仓库名为user/httpd
+#本地也要有一个user/httpd这种仓库名的文件才能实现push操作,pushed之后可以再hub上看到了
+ 1028  docker push dockerptu/httpd
+ docker logout
+
+ #在阿里yun上建立仓库,登录阿里云,进入"管理控制台选项"
+ 在宿主机登录aliyun
+ docker login --username=雅宝斯巴鲁斯 registry.cn-shenzhen.aliyuncs.com	#hashcode:99~
+ #修改要上传文件的标签{仓库名+(标签名)}为aliyun的命名空间+仓库名registry.cn-shenzhen.aliyuncs.com/dockerptu/httpd
+ docekr tag mageedu/httpd:v0.2 registry.cn-shenzhen.aliyuncs.com/dockerptu/httpd:v0.2
+ #上传
+ docker push registry.cn-shenzhen.aliyuncs.com/dockerptu/httpd:v0.2
+ 
+ #近端主机之间通信测试镜像完好则使用scp拷贝打包文件
+ docker save -o myimages.gz mageedu/bbox_httpd:v0.1-1 mageedu/httpd:v0.2	#打包镜像
+ scp myimages.gz docker02:/root/
+ #在docker02上运行load -i,直接从压缩文件中读取该镜像,然后直接run
+docker load -i myimages.gz
+
+
+
+
+#########密码验证
+
+import re
+
+while True:
+    try:
+        s = input()
+        a=re.findall(r'(.{3,}).*\1',s)
+        b1= re.findall(r'\d',s)
+        b2=re.findall(r'[a-z]',s)
+        b3=re.findall(r'[A-Z]',s)
+        b4=re.findall(r'[^0-9A-Za-z]',s)
+
+        if([b1,b2,b3,b4].count([])<=1 and a==[] and len(s)>8):
+            print("OK")
+        else:
+            print("NG")
+    except:
+        break
+
+		
+import re
+ 
+while True:
+    try:
+        s=input()
+        a=re.findall(r'(.{3,}.*\1)',s)
+        b1=re.findall(r'[A-Z]',s)
+        b2=re.findall(r'[a-z]',s)
+        b3=re.findall(r'[0-9]',s)
+        b4=re.findall(r'[^0-9A-Za-z]',s)
+        if([b1,b2,b3,b4].count([]) <=1 and a == [] and len(s)>8):
+            print("OK")
+        else:
+            print("NG")
+    except:
+        break
+
+###汽水瓶问题		
+
+import sys
+def drink(n):
+    if n <2:
+        return 0
+    elif n==2:
+        return 1
+    # 喝过的汽水数 -> n//3
+    # 剩下的空瓶数 -> n//3 + n%3
+    return n//3+drink(n//3+n%3)
+for line in sys.stdin:
+    n = int(line.strip())
+    
+    res =drink(n)
+    print(res)
+
+
+	#####或者
+def iter(n):
+    
+    if n == 2:
+        return 1
+    elif n>2:
+        m = n//3
+        d=n%3
+        n =d+m
+        return m+iter(n)
+    else:
+        return 0
+
+while True:
+    try:
+        n=int(input())
+        
+        print(iter(n))
+        
+        
+        
+    except:
+        break
+        
+        
+
+def iter(n):
+    m = n//3
+    d=n%3
+    if n == 2:
+        return 1
+    elif n>2:
+        
+        n =d+m
+        return m+iter(n)
+    else:
+        return 0
+
+while True:
+    try:
+        n=int(input())
+        
+        print(iter(n))
+        
+        
+        
+    except:
+        break
+        
+        
+######string_del.py删除最少字符
+while True:
+    try:
+        s=input()
+        if len(s) >20:
+            break
+        ls=[]
+        dict1={}
+        for i in s:
+            if i not in dict1.keys():
+                dict1[i]=s.count(i)
+            else:
+                dict1[i] +=1
+
+        for k2 in dict1.keys():
+            if dict1[k2] > 1:
+                ls.append(k2)
+        for i1 in list(s):
+            if i1 in ls:
+                print(i1,end="")
+        print("")
+    except:
+        break
+		
+##2.0
+while True:
+    try:
+        s=input()
+        if len(s) >20:
+            break
+        ls=[]
+        dict1={}
+        for i in s:
+            if i not in dict1.keys():
+                dict1[i]=s.count(i)
+            else:
+                dict1[i] +=1
+
+        for k2 in dict1.keys():
+            if dict1[k2] > 1:
+                ls.append(k2)
+        for i1 in list(s):
+            if i1 not in ls:
+                s=s.replace(i1,"")	#直接使用替换字符
+        print(s)
+    except:
+        break
+
+#3.0，之前是取巧做法
+while True:
+    try:
+        s=input()
+        if len(s) >20:
+            break
+        ls=[]
+        dict1={}
+        for i in s:
+            if i not in dict1.keys():
+                dict1[i]=s.count(i)
+            else:
+                dict1[i] +=1
+
+        for k2 in dict1.keys():
+            if dict1[k2] > min(dict1.values()):	#这里直接使用min求值
+                ls.append(k2)
+        for i1 in list(s):
+            if i1 not in ls:
+                s=s.replace(i1,"")
+        print(s)
+    except:
+        break
+#4.0 大佬版本
+链接：https://www.nowcoder.com/questionTerminal/05182d328eb848dda7fdd5e029a56da9
+来源：牛客网
+
+while True:
+    try:
+        a=input()
+        b=[]
+        c=''
+        for i in range(len(a)):
+            b.append(a.count(a[i]))
+        for i in range(len(a)):
+            if min(b)!=b[i]:
+                c=c+a[i]
+        print(c)     
+    except:
+        break
+
+####IPdizhi 
+
+import re
+ 
+def isLegalIP(IP):
+    if not IP or IP == "":
+        return False
+     
+    pattern = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
+    match = pattern.match(IP)
+    if not match:
+        return False
+     
+    nums = IP.split(".")
+    for num in nums:
+        n = int(num)
+        if n<0 or n>255:
+            return False
+         
+    return True
+ 
+def CatagoryIP(IP):
+    if not IP or IP == "":
+        return False
+    nums = IP.split(".")
+    # A
+    if 126 >= int(nums[0]) >= 1:
+        return "A"
+    # B
+    if 191 >= int(nums[0]) >= 128:
+        return "B"
+    # C
+    if 223 >= int(nums[0]) >= 192:
+        return "C"
+    # D
+    if 239 >= int(nums[0]) >= 224:
+        return "D"
+    # E
+    if 255 >= int(nums[0]) >= 240:
+        return "E"
+     
+    return False
+ 
+def isPrivateIP(IP):
+    if not IP or IP == "":
+        return False
+     
+    nums = IP.split(".")
+    if int(nums[0]) == 10:
+        return True
+    if int(nums[0]) == 172:
+        if 31 >= int(nums[1]) >= 16:
+            return True
+    if int(nums[0]) == 192 and int(nums[1]) == 168:
+        return True
+     
+    return False
+ 
+
+ 
+         
+try:
+    A, B, C, D, E, Err, P = [0, 0, 0, 0, 0, 0, 0]
+    while True:
+        s = input()    #python3中使用input代替raw_input()
+        IP, Mask = s.split("~")
+         
+        if not isLegalIP(IP) or not isLegalMaskCode(Mask):
+            Err += 1
+        else:
+            if isPrivateIP(IP):
+                P += 1
+            cat = CatagoryIP(IP)
+            if cat == "A":
+                A += 1
+            if cat == "B":
+                B += 1
+            if cat == "C":
+                C += 1
+            if cat == "D":
+                D += 1
+            if cat == "E":
+                E += 1
+
+except:
+    
+    pass
+
+print(A, B, C, D, E, Err, P)
+
+
+
+######cuowu
+import re
+
+def IP(ip):
+    if not ip or ip == "":
+        return False
+    pattern=re.compile(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$')
+    match = pattern.match(ip)
+    if not match:
+        return False
+    nums=ip.split('.')
+    for num in nums:
+        n=int(num)
+        if n<0 or n>255:
+            return False
+    return True
+
+def cataIP(ip):
+    if not ip or ip == "":
+        return False
+    nums=ip.split(".")
+    #A
+    if 126>= int(nums[0])>=1:
+        return "A"
+    #B
+    if 191>= int(nums[0]) >=128:
+        return "B"
+    #C
+    if 223>= int(nums[0])>=192:
+        return "C"
+    #D
+    if 239>= int(nums[0]) >= 224:
+        return "D"
+    #E
+    if 255>=int(nums[0])>=240:
+        return "E"
+    return False
+def isPriv(ip):
+    if not ip or ip == "":
+        return False
+    nums=ip.split(".")
+    if int(nums[0]) ==10:
+        return True
+    if int(nums[0]) == 172:
+        if 31>= int(nums[1]) >=16:
+            return True
+    if int(nums[0]) == 192 and int(nums[1]) ==168:
+        return True
+    return False
+def mask(mask):
+    if not mask or mask == "":
+        return False
+    if not IP(mask):
+        return False
+    binmask="".join(map(lambda x: bin(int(x))[2:].zfill(8),mask.split(".")))
+    indexOfFirstZero=binmask.find("0")
+    indexOfLaseOne = binmask.rfind("1")
+    if indexOfLastOne > indexOfFirstZero:
+        return False
+    return True
+A,B,C,D,E,Err,P=[0,0,0,0,0,0,0]
+try:
+    
+    while True:
+        s= input()
+        ip,mask=s.split('~')
+        if not IP(ip) or not mask(mask):
+            Err +=1
+        else:
+            if isPriv(ip):
+                P +=1
+            cat=cataIP(ip)
+            if cat == "A":
+                A +=1
+            if cat == "B":
+                B +=1
+            if cat == "C":
+                C +=1
+            if cat == "D":
+                D +=1
+            if cat =="E":
+                E +=1
+except:
+    pass
+print(A,B,C,D,E,Err,P)
+    
+	
+##### 动态规划求解最多出列几人问题
+链接：https://www.nowcoder.com/questionTerminal/6d9d69e3898f45169a441632b325c7b4
+来源：牛客网
+
+import bisect
+ 
+#动态规划获得最大递增自序列，时间复杂度O(n*n)
+def ascMax(l, dp):
+    dp += [1]
+    for i in range(1, len(l)):
+        tmp = 0
+        for j in range(0, i):
+            if l[j] < l[i]:
+               tmp = max(dp[j], tmp)
+        dp += [tmp + 1]
+ 
+#二分法获取最大递增子序列，时间复杂度O(nlogn)
+def ascMax(l, dp):
+    dp += [1]
+    b = [float('inf') for i in range(len(l))]#初始化b数组为无穷大
+    b[0] = l[0](1844)#第一个元素自己就是最大递增子序列
+    for i in range(1, len(l)):
+        pos = bisect.bisect_left(b, l[i])
+        b[pos] = l[i]
+        dp += [pos + 1]
+ 
+while True:
+    try:
+        N = int(input())
+        H = list(map(int, input().split(' ')))
+        dp_1, dp_2 = [], []
+        ascMax(H, dp_1)
+        ascMax(H[::-1], dp_2)
+        dp = []
+        for i in range(0, N):
+            dp += [dp_1[i] + dp_2[N-i-1] - 1]	#x+y - 1 为最长子序
+        print(N - max(dp))
+    except:
+        break
+####
+ def asMax(l,dp):
+    dp +=[1]
+    b=[float('inf') for i in range(len(n))]
+    b[0]=l[0]
+    for i in range(1,len(1)):
+        pos=bisect.bisect_left(b,l[i])
+        b[pos]=l[i]
+        dp += [pos+1]
+ 
+ ##
+ #动态规划获得最大递增自序列，时间复杂度O(n*n)
+def ascMax(l, dp):
+    dp +=[1]
+    for i in range(1,len(l)):
+        tmp=0
+        for j in range(i):
+            if l[j]<l[i]:
+                tmp=max(dp[j],tmp)
+        dp += [tmp + 1 ]     #tmp+1指代因为第一个数下标是1 为了求max(dp),每个字符都有下标，以求最长子序。
+		
+		
+###数据分类。		
+链接：https://www.nowcoder.com/questionTerminal/9a763ed59c7243bd8ab706b2da52b7fd
+来源：牛客网
+
+while True:
+    try:
+        a=input().split()[1:]
+        b=map(str,sorted(map(int,set(input().split()[1:]))))
+        totalNum=0
+        res=""
+        for num in b:
+            singleRes,count="",0
+            for i,v in enumerate(a):
+                if num in v:
+                    singleRes+=str(i)+" "+v+" "
+                    totalNum+=2
+                    count+=1
+            if count:
+                singleRes=num+" "+str(count)+" "+singleRes
+                totalNum+=2
+            res+=singleRes
+        print((str(totalNum)+" "+res).rstrip())
+ 
+ 
+ 
+    except:
+        break
+#####数据分类-自己。
+while True:
+    try:
+        i = list(map(int,input().split()))
+        r = list(map(int,input().split()))
+
+        I=i[1:]
+        l=[]
+        R=sorted(set(r[1:]))
+        I1=[]
+        for i in I:
+            I1.append(str(i))
+        ls=[[0,0] for i in range(len(R))]
+
+        for r in range(len(R)):     #0,3,6
+            for i in  I1:
+                if str(R[r]) in i:
+                    ls[r][0]=R[r]
+                    ls[r][1] += 1
+
+                    ls[r].append(I1.index(i))
+                    ls[r].append(int(i))
+        #print(ls)
+        for k in range(len(ls)):        #判断如果I中不存在R[i],就不输出，筛选条件ls[k][1] !=0
+            if ls[k][1] !=0:
+                for i in range(len(ls[k])):
+                    l.append(ls[k][i])
+        print(len(l),end=" ")
+        for i in l:
+            print(int(i),end=" ")
+        print("")
+
+
+    except:
+        break   
+		
+		
+#		
+def f(s):
+    a, L = [], len(s)
+    for i in range(L):
+        if s[i].isalpha():   #判断是否为字母
+            a.append((s[i], s[i].lower(), i))   #在列表中添加小列表（这个元素，以及小写，和位置）
+    b = sorted(a, key=lambda x:(x[1], x[2], x[0]))  #lanbda是匿名函数，x是参数，冒号后边是表达式,#这个的意思是以key函数的顺序排序,也就是先紧着第二个的顺序排序，然后是第三个，第一个重要性最低。注意的是，原列表中的元素顺序不变
+    result = ''
+    for i in xrange(L):
+        if s[i].isalpha():
+            result += b[0][0]
+            del b[0]    #删除这个元素，后边的元素依次往前进1
+        else:
+            result += s[i]
+    return result
+      
+try:
+    while 1:
+        print f(raw_input())
+except:
+    pass
+	
+	
+######l1,l2 .py
+while True:
+    try:
+        m,n,R=map(int,input().split())
+        la=list(map(int,input().split()))
+        lb=list(map(int,input().split()))
+        ls=[]
+        for i in range(m):
+            
+            for j in range(n):
+                if la[i]<=lb[j] and lb[j] - la[i] <=R:
+                    l.append((lb[j]-la[i],i))
+                    break
+        for i in range(len(l)):
+            print("%d %d"%(l1[l[i][1]],l1[l[i][1]]+l[i][0]))
+    except:
+        break

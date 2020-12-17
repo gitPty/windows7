@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>login</title>
+    <link rel="icon" sizes="128x128"  href="/static/images/logo.ico">
+    <link rel="stylesheet" type="text/css" href="/static/css/login.css">
+</head>
+<body>
+    <div class="demo">
+        <div class="content">
+            <div id="large-header" class="large-header">
+                <canvas id="demo-canvas"></canvas>
+                <div class="logo_box">
+                    <h3>Welcome</h3>
+                    <form action="/" method="post">
+                        {% csrf_token %}
+                        <span style="color: red;">{{ msg }}</span>
+                        <div class="input_outer">
+                            <span class="account"></span>
+                            <input type="text" name="username" class="text" style="color: #FFFFFF !important"  placeholder="请输入账户">
+                        </div>
+                        <div class="input_outer">
+                            <span class="pwd"></span>
+                            <input type="password" name="password" class="text" style="color: #FFFFFF !important; position:absolute; z-index:100;" value="" placeholder="请输入密码">
+                        </div>
+                        <div>
+                            <input type="submit" class="submit"  value="登录">
+
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="/static/js/dynamic.min.js"></script>
+<script src="/static/js/demo-1.js"></script>
+</html>

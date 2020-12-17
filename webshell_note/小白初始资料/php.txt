@@ -1,0 +1,443 @@
+php 区分大小写
+
+##########注释php
+#这是一个,单行注释
+/*这是一个注释*/，多行注释
+// 单行注释
+
+
+e.g.：1.php文件
+<?php
+	if($_POST['act'] == 'MySQL检测'){
+	  if(function_exists("mysql_close")==1){
+	    $link=@mysql_connect($host.":".$port,$login,$password);
+		if($link){
+		  echo "<script> alert('连接到mysql数据库正常')</script>";
+		}else{
+		  echo "<script>alert('无法连接到mysql数据库')</script>";
+		}
+	  }else{
+	    echo "<script>alert('服务器不支持mysql数据库！')</script>";
+	  }
+	}
+?>
+
+
+###form_post.html
+
+<html>
+<body>
+<!-- 当请求为GET时，welcome.php 要是用$_GET[] -->
+<form action="welcome.php" method="post">
+姓名: <input type="text" name="name"><br>
+邮箱: <input type="text" name="email"><br>
+<input type="submit">
+
+</form>
+</html>
+	
+	
+###welcome.php
+<html>
+<body>
+<!-- 当请求为GET时，welcome.php 要是用$_GET[] -->
+<?php
+echo $_POST['name'];
+?>，欢迎您<br>
+您的邮箱地址是:<?php echo $_POST["email"];?>
+</body>
+</html>
+	
+##########变量$_GET,$_POST,
+<!-- 当请求为GET时，welcome.php 要是用$_GET[] -->
+<!-- 当请求为POST时，welcome.php 要是用$_POST[] -->
+GET请求GET   :get请求将请求内容放在了url中，e.g.：http://webphpstudy.pty.com/welcome.php?name=dawd&email=wada
+POST请求POST   ：post请求不会提示在代码中
+REQUEST 可以请求GET和POST
+
+
+#列举服务器的信息
+$_SERVER变量
+
+<?php
+ehco "服务器名称: ".$_SERVER['SERVER_NAME']."<br>";		#\b, \r, 所以<br>标签是回车换行符
+echo "网站根目录: ".$_SERVER['DOCUMENT_ROOT']."<br>";
+echo "当前网页相对路径: ".$_SERVER['PHP_SELF']."<br>";
+echo "当前网页绝对路径: ".$_SERVER['SCRIPT_FILENAME']."<br>";
+echo "服务器环境变变量: ".$_SERVER['PATH']."<br>";
+?>
+
+
+##Tips ,其他变量
+$GLOBALS
+$_ENV
+$_REQUEST
+$_COOKIE
+$_SESSION
+
+
+###############
+mysql -u root -h 192.168.1.0 -p123456 -P3306
+mysql 操作
+安装完mysql后
+到安装目录下
+mysqladmin： 重置密码   如果你的root现在有密码了（123456），那么修改密码为abcdef的命令是：
+mysqladmin -u root -p123456 password abcdef (注意-p 不要和后面的密码分开写，要写在一起,不然会出错,
+mysql 操作数据库
+mysqld： 开启mysql或关闭
+mysqlimport 导入文件
+###############文件上传
+<?php
+include 'upload_file.php';
+?>
+在文件包含中的include ，也可以使用require包含文件，两者区别
+include: 警告，脚本继续
+require ： 警告，停止脚本
+
+
+
+			
+			
+####################
+php如何连接MySQL服务？
+操作过程：
+1.连接MySQL服务
+	mysql_connect("localhost","root","root")
+2.设定编码
+	mysql_query("SET NAMES UTF8")
+3. 选择数据库
+	mysql_select_db("websecurity",$con)
+4. 操作数据库
+	mysql_query("SELECT * FROM teacher")
+5. 关闭连接
+	mysql_close($con)
+	
+	
+
+<?php
+$con = mysql_connect("localhost","root","root");
+
+
+if (!$con)
+{
+	die('数据库连接失败: '.mysql_error());
+}
+else{
+#设定编码
+mysql_query("SET NAMES UTF8");
+
+mysql_select_db("websecurity",$con);		#连接之前创建的websecurity数据库
+
+$result = mysql_query("SELECT * FROM teacher");
+//在表格中输出显示结果
+echo "<h2>欢迎学习web安全-sql</h2><p>人员列表如下：</p>";
+echo "<table border='2' width='300'><tr><th>id</th><th>name</th><th>sex</th><th>addr</th></tr>";
+while($row = mysql_fetch_array($result))
+{
+	echo "<tr>";
+	echo "<td>".$row['id']."</td>";
+	echo "<td>".$row['name']."</td>";
+	echo "<td>".$row['sex']."</td>";
+	echo "<td>".$row['addr']."</td>";
+	echo "</tr>";
+}
+echo "</table>";
+}
+mysql_close($con);
+?>
+
+
+######################
+#############
+#创建一个网页实例，web漏洞演示环境
+	1） 数据库导入MySQL
+	2） demo源码导入
+	3） 配置数据库文件
+
+
+
+#搜索关键字
+Hacked by
+intitle:
+intext:
+site:
+######
+		
+		
+##黑的几种手段
+1）钓鱼，引导访问网页
+2）篡改，直接篡改网页内容
+#成熟产业 
+隐藏在网站中的链接，网游，医疗，菠菜，链接
+3）暗链，
+hidden hyperlinks
+使得网站排名较高。
+
+4）webshell，网页传送门
+分为大马和小马。
+
+火狐的firebug工具。
+			
+			
+			
+			##########XSSS
+XSS：篡改网页内容，插入恶意脚本。
+存储型xss	： 存储到后端数据库中永久保存了。类似反射型，不过永久保存
+反射型xss：通过后端应用程序写入到浏览器页面中，浏览器渲染时触发反射XSS，
+			浏览器返回页面时渲染触发，而dom型不是，
+dom型xss，url的哈希串不会传递给后端服务器。现将哈希值保存在一个变量中，
+	再讲变量解码赋值给。innerHTML，通过JS操作DOM。dom型不能通过F12源码方式查看xss的代码，使用firebug插件来看
+	用户访问应用，浏览器解析url内容输出到DOM中，以此区别反射XSS，
+	
+<img src='#' onerror=alert('/xss/')>	#一句话触发xss
+
+
+存储型：
+	触发过程：1.构造XSS脚本，正常用户访问携带XSS的页面
+	数据存储：数据库
+	输出： 后端web应用程序
+	输出位置：http响应中
+	
+反射型：
+	触发过程：正常用户访问携带XSS脚本的页面
+	数据存储：URL
+	输出：后端web应用程序
+	输出位置：http响应中
+DOM型：
+
+	触发过程：正常用户访问携带XSS脚本的页面
+	数据存储：URL
+	输出： 前端JavaScript
+	输出位置：http响应中
+
+				
+				
+			########CSRF 哦攻击方式
+CSRF：跨站请求伪造，利用用户已登录身份，以用户名已完成非法操作
+
+
+
+iframe 标签嵌套使得网址不同，网页类似。
+
+<!DOCTYPE HTML>
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<head>
+<title>卡看看</title>
+<style>
+	html,body,iframe{
+		display: block;
+		width: 100%;
+		margin: 0;
+		padding: 0;
+		border: none;
+	}
+</style>
+</head>
+<body>
+<iframe src="http://aq.163.com/moudle/hole=submit.html"></iframe>
+</body>
+</html>
+
+利用iframe标签使得嵌套覆盖原网页。
+
+
+#点击劫持。
+网页图片的透明度使得按钮无法看见，点击按钮则转到其他地方。
+隐蔽性高，UI-覆盖利用iframe标签
+
+
+##URL跳转漏洞
+####url.html
+<html>
+<head>
+<title>URL redirection </title>
+<h2>location redirection 301:</h2>
+<a href='url.php?url=http://study.163.com'>url.php?url=http://study.163.com</a>
+</head>
+</html>
+######
+
+
+<!-- 利用meta标签，改变url连接显示的字串 -->
+<meta http-equiv="Refresh" content="5; url=<?php echo $url?>" />
+
+########url_meta.php
+<html>
+<head>
+<title></title>
+
+<?php
+header("content-type:text/html;charset=utf-8");
+if(isset($_REQUEST['url']))
+{
+	$url=$_REQUEST['url'];
+}else{
+	$url="url_meta.php";
+}
+
+?>
+<!-- 利用meta标签，改变url连接显示的字串 content =5 是设置跳转前5秒延时-->
+<meta http-equiv="Refresh" content="5; url=<?php echo $url?>" />
+</head>
+<body>
+</body>
+</html>
+
+############
+url.php
+
+<?php
+header("content-type:text/html;charset=utf-8");
+if(isset($_REQUEST['url']))
+{
+	$url=$_REQUEST['url'];
+}else{
+	$url="url.html";
+}
+header("HTTP/1.1 301 MOVED Permanently");
+header("Location: $url")
+?>
+
+#########################
+
+
+#关于http请求
+
+POST方式提交给服务器器用户名密码，密码经过MD5处理，这个用户名和MD5密码会被拼接到SQL语句中查询
+执行成功，返回用户名
+万能密码： 获取用户参数，拼接到代码中。SQL中构造，不需要密码执行成功
+
+sql> select name from teacher where name='admin' -- 'and passwd='daw21ad32e3 ad2' limit 1  #其中 -- 注释了后面内容。所以万能密码
+只要账户时admin 就可以查询
+
+SQL注入本质：数据和代码未分离
+
+
+
+###########
+
+
+#命令利用漏洞，OS-command，dos，bash
+#命令漏洞利用条件，web应用注入命令
+	1） 调用可执行命令的函数，system exec, shell_exec,eval 等函数
+	2） 函数或函数的参数可控，e.g.： cookie，get，post 请求
+	3） 拼接注入命令
+DOS命令。
+##查看本地网络
+	ipconfig
+#查看系统用户
+	net suer
+#查看当前目录
+	dir
+#字符查找
+	find "hello" ./test.txt
+	
+	
+##复合命令,&（与）,| (管道）
+	echo hello & echo word
+	ipconfig | find "IPv4"
+	
+##php调用系统命令
+###exec.php
+<body>
+	<?php
+		if (isset($_GET['type'])){
+			$type = $_GET['type'];
+		}else{
+			$type=1;
+		}
+		switch($type){
+			case 1:
+				exec('ipconfig',$output,$status);
+				break;
+			case 2:
+				exec('net user',$output,$status);
+				break;
+			case 3:
+				exec('dir',$output,$status);
+				break;
+		}
+		foreach ($output as $value){
+			//编码转换
+			echo(mb_convert_encoding($value,"UTF-8","GB2312"));
+			echo("<br />");
+		}
+	?>
+</body>
+		http://webphpstudy.pty.com/exec.php?type=3,		
+		#上述代码检测get请求中是否包含￥type变量，值是123，执行switch的命令
+		上述代码已经写死，参数不可控，只能123.
+
+00##########修改上述代码后
+#getHeader.php 
+<body>
+	<?php
+		if(isset($_GET['url'])){
+			$url=$_GET['url'];
+		}else{
+			$url='http://dun.163.com';
+		}
+		//调用curl命令，获取url响应头
+		$cmd = 'curl -I "'.$url.'"';		#可以执行 命令注入。" & dir "./
+		
+		//注入命令  # http://www.163.com" %26 dir "./ #%26 是& 符号
+		#结果是  curl -I "http://www.163.com" &dir "./"
+		//执行系统命令
+		exec($cmd,$output,$status);
+		
+		echo "<b>".htmlspecialchars($url)."</b>"." 的响应头如下：<br /><br />";
+		
+		//输出命令知悉结果
+		foreach($output as $value){
+			echo htmlspecialchars($value);
+			echo"<br />";
+		}
+	?>
+</body>
+
+
+################
+#文件上传漏洞
+1.可以上传可执行脚本
+2.脚本有可执行权限。
+
+#############
+#任意文件下载
+右键复制链接地址，修改url中参数，获取.php .exe .aspx .cpp 结尾的文件
+1. 未验证下载文件格式
+2. 未限制请求路径
+
+
+##########
+#文件包含，重复代码写入一个文件
+1)本地文件包含，
+2) 远程文件包含
+常见包含函数： include(),require() ,include_once(), require_once()
+include.php
+<?php
+	if(isset($filename)){
+		$filename = $_GET['name'];
+		include($filename);
+	}else{
+		echo "error";
+	}
+?>
+访问：
+http://webphpstudy.pty.com/include.php?name=info.php
+远程访问：
+http://webphpstudy.pty.com/include.php?name=\\10.134.99.129\PDSSshare\Public\test\info.php
+测试远程文件包含时：
+allow_url_open=On	(是否允许打开远程文件）
+allow_url_include = On	（是否允许包含远程文件）
+
+
+
+##########
+#浏览器插件
+firefox插件：
+1.firebug，调试
+2.hackbar（快速构造http请求和多种编码转换。），post请求。
+3.cookie manager （编辑cookie，快速修改增加删除cookie，CM缩写
+4. proxy swithcer		结合抓包工具使用
+

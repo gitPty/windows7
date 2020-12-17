@@ -1,0 +1,83 @@
+#########
+环境：靶机或者AWVS提供的测试环境
+运行在windows上，windows上安装java包，大部分工具java的。
+AWVS
+http://www.acunetix.com
+https://www.acunetix.com/vulnerability-scanner/download/
+	##工作过程：
+	1. 扫描配置与目标基本信息探测
+	2. 爬虫模块？：对目标站点页面结构爬取
+	3. 各个漏洞探测模块：对具体漏洞探测
+	4.漏洞结果记录与呈现
+	
+测试网站：
+http://testhtml5.vulnweb.com/0
+
+http://testphp.vulnweb.com/
+功能特点：
+该强大之处在于 web-scanner功能。
+报告格式。设置logo，title。
+
+项目环境： OWASP靶机或者在线靶机。
+测试机： win7。
+
+################
+
+二，漏扫
+运行在windows上，但支持中文界面
+AppScan
+
+测试网站：
+http://demo.testfire.net/bank/main.aspx
+
+
+########
+三 ，burp Suite，使用professional版本，社区版没扫描功能。
+环境：win7 或者kali，目标靶机。
+百度云有破解。
+特点：
+代理、爬虫和扫描功能
+
+启动方法：加入内存调优选项。1024M,2G==
+# java -jar -Xmx1024M /burpsuite_path/BurpHelper.jar
+
+
+target,scope,interrupt,spyder,report.
+
+四： Netsparker
+。
+
+
+
+
+
+五： 目前爱使用漏扫工具需要明确的问题
+	1. 对目标站点误伤
+		e.g.:高流量、请求了危险功能（如删除数据库）
+	2. 漏扫盲区：逻辑漏洞
+		e.g.: 订单金额数据篡改漏洞
+		
+	漏洞评级问题：技术+业务。
+	误报、漏报。
+
+	
+敏文件探测：
+e.g.: 类型： 管理后台、数据文件.sql 、备份文件.tar.gz 、webshell
+原理： 
+猜测文件名，根据http返回码判断文件存在
+200,存在
+301,可能
+404  不存在
+
+#扫描敏感文件
+御剑：
+
+御剑配置文件，无需安装。直接运行。
+
+
+#使用asp字典去扫描php站点扫不到，无用功。so。
+1.怎样判断目标网站脚本类型？
+	1） 直接判断网站index文件的脚本类型，查看index.php/index.asp/index.aspx/index.jsp 是否存在。
+	
+	
+针对构造备份文件字典。 

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DevOps</title>
+    <link rel="icon" sizes="any" href="/static/images/logo.ico">
+    <link href="/static/css/index.css" rel="stylesheet">
+</head>
+
+<body>
+
+     <div class="page_top" align="center">
+        <img src="/static/images/devops.jpg">
+
+        <div class="login_user">
+
+            {% if result_one %}
+                <span>{{ result_one.username }}</span>
+            {% else %}
+                <span>{{ result_two.username }}</span>
+            {% endif %}
+
+            <a style="text-decoration: none" href="/logout/">logout</a>
+        </div>
+    </div>
+
+    <table class="notice">
+       <tbody>
+            <tr>
+                <th style="width: 21px">公告日期</th>
+                <th style="width: 573px">公告内容</th>
+            </tr>
+
+            <tr>
+                <th>2019/7/18</th>
+                <th>10.148.55.89重启后需执行C:\02.Robocopy.bat</th>
+            </tr>
+        </tbody>
+    </table>
+    <p></p>
+
+    <div class="border1">
+        <div class="group1">Restart group one</div>
+        <button onclick="selectall_one();">全选</button>
+        <button onclick="cacel_one();">反选</button>
+         <form action="/index/" method="post">
+             {% csrf_token %}
+             <table class="selectall_one" border="3" style="width: 100%">
+                {#一行十列#}
+                 <tr>
+                     <input type="hidden" name="one" value="one">
+                     <td><input type="checkbox" name="ip1" value="10.134.99.129">10.134.99.129</td>
+                     <td><input type="checkbox" name="ip2" value="10.150.4.242">10.150.4.242</td>
+                     <td><input type="checkbox" name="ip3" value="10.150.4.176">10.150.4.176</td>
+                     <td><input type="checkbox" name="ip4" value="10.148.54.31">10.148.54.31</td>
+                     <td><input type="checkbox" name="ip5" value="10.150.4.127">10.150.4.127</td>
+                     <td><input type="checkbox" name="ip6" value="10.148.55.99">10.148.55.99</td>
+                     <td><input type="checkbox" name="ip7" value="10.142.214.11">10.142.214.11</td>
+                     <td><input type="checkbox" name="ip8" value="10.142.214.13">10.142.214.13</td>
+                     <td><input type="checkbox" name="ip9" value="10.122.40.80">10.122.40.80</td>
+                     <td><input type="checkbox" name="ip10" value="10.122.40.82">10.122.40.82</td>
+                 </tr>
+                 <tr>
+                     <td><input type="checkbox" name="ip11" value="10.122.40.84">10.122.40.84</td>
+                     <td><input type="checkbox" name="ip12" value="10.150.4.150">10.150.4.150</td>
+                     <td><input type="checkbox" name="ip13" value="10.150.4.152">10.150.4.152</td>
+                     <td><input type="checkbox" name="ip14" value="10.161.212.38">10.161.212.38</td>
+                     <td><input type="checkbox" name="ip15" value="10.184.0.201">10.184.0.201</td>
+                     <td><input type="checkbox" name="ip16" value="10.172.112.114">10.172.112.114</td>
+                     <td><input type="checkbox" name="ip17" value="10.195.227.1">10.195.227.1</td>
+                     <td><input type="checkbox" name="ip18" value="10.76.17.1">10.76.17.1</td>
+                     <td><input type="checkbox" name="ip19" value="10.134.173.5">10.134.173.5</td>
+                     <td><input type="checkbox" name="ip20" value="10.150.4.191">10.150.4.191</td>
+                 </tr>
+                 <tr>
+                     <td><input type="checkbox" name="ip21" value="10.134.184.60">10.134.184.60</td>
+                 </tr>
+             </table>
+
+             <table>
+                <tr>
+                    <td><input type="checkbox" name="reboot" value="reboot">reboot</td>
+                    <td><input type="checkbox" name="uptime" value="uptime">uptime</td>
+                </tr>
+                 <tr>
+                    <td><input type="submit" value="submit"></td>
+                </tr>
+             </table>
+        </form>
+        <p></p>
+        <div style="color: red; font-size: 30px; font-weight: bold">
+            Exception:{{ result_one.conn }}  {{ result_one.reboot }}
+        </div>
+
+    </div>
+
+    <p></p>
+
+    <div class="border1">
+        <div class="group2">Restart group two</div>
+        <button onclick="selectall_two();">全选</button>
+        <button onclick="cacel_two();">反选</button>
+         <form action="/index/" method="post">
+             {% csrf_token %}
+             <table class="selectall_two" border="3" style="width: 100%">
+		{#一行十列#}
+                 <tr>
+                     <input type="hidden" name="two" value="two">
+                     <td><input type="checkbox" name="ip1" value="10.134.99.163">10.134.99.163</td>
+                     <td><input type="checkbox" name="ip2" value="10.150.4.243">10.150.4.243</td>
+                     <td style="background-color: #FFFFAA"><input type="checkbox" name="ip3" value="10.148.55.89">10.148.55.89</td>
+                     <td><input type="checkbox" name="ip4" value="10.148.55.128">10.148.55.128</td>
+                     <td><input type="checkbox" name="ip5" value="10.142.214.12">10.142.214.12</td>
+                     <td><input type="checkbox" name="ip6" value="10.142.214.14">10.142.214.14</td>
+                     <td><input type="checkbox" name="ip7" value="10.122.40.81">10.122.40.81</td>
+                     <td><input type="checkbox" name="ip8" value="10.122.40.83">10.122.40.83</td>
+                     <td><input type="checkbox" name="ip9" value="10.122.40.85">10.122.40.85</td>
+                     <td><input type="checkbox" name="ip10" value="10.150.4.151">10.150.4.151</td>
+                 </tr>
+                 <tr>
+                     <td><input type="checkbox" name="ip11" value="10.150.4.153">10.150.4.153</td>
+                     <td><input type="checkbox" name="ip12" value="10.161.212.39">10.161.212.39</td>
+                     <td><input type="checkbox" name="ip13" value="10.184.0.202">10.184.0.202</td>
+                     <td><input type="checkbox" name="ip14" value="10.173.172.114">10.173.172.114</td>
+                     <td><input type="checkbox" name="ip15" value="10.172.113.210">10.172.113.210</td>
+                     <td><input type="checkbox" name="ip16" value="10.195.227.2">10.195.227.2</td>
+                     <td><input type="checkbox" name="ip17" value="10.195.227.3">10.195.227.3</td>
+                     <td><input type="checkbox" name="ip18" value="10.76.17.2">10.76.17.2</td>
+                     <td><input type="checkbox" name="ip19" value="10.150.4.194">10.150.4.194</td>
+                     <td><input type="checkbox" name="ip20" value="10.150.4.192">10.150.4.192</td>
+                 </tr>
+                 <tr>
+                     <td><input type="checkbox" name="ip21" value="10.134.184.61">10.134.184.61</td>
+                     <td><input type="checkbox" name="ip22" value="10.150.4.161">10.150.4.161</td>
+                 </tr>
+             </table>
+
+             <table>
+                <tr>
+                    <td><input type="checkbox" name="reboot" value="reboot">reboot</td>
+                    <td><input type="checkbox" name="uptime" value="uptime">uptime</td>
+                </tr>
+                 <tr>
+                    <td><input type="submit" value="submit"></td>
+                </tr>
+             </table>
+        </form>
+        <p></p>
+        <div style="color: red; font-size: 30px; font-weight: bold">
+            Exception:{{ result_two.conn }}  {{ result_two.reboot }}
+        </div>
+
+    </div>
+
+    <div class="top"></div>
+
+</body>
+<script src="/static/js/jquery-3.4.1.min.js"></script>
+<script src="/static/js/index.js"></script>
+<script type="text/javascript" color="255,0,0" zIndex="-1" count="120" src="/static/js/canvas-nest.js"></script>
+</html>

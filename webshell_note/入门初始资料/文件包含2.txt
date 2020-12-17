@@ -1,0 +1,24 @@
+
+###x.php
+
+<?php
+ehco 1;
+include "./1.txt";
+include_once "./1.txt";	#只包含一次
+
+?>
+
+
+######1.php
+<?php
+return array('name' => 'xindong ','edr'=>'sada');
+?>
+
+#########文件包含2.php
+<?php
+$a = include_onec "/1.php";
+var_dump($a);
+?>
+
+执行2.php会包含1.php的内容 。 不要用echo直接输出数组 ，使用var_dump 输出
+返回关联数组对象 ‘=>’

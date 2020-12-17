@@ -1,0 +1,36 @@
+dnscmd root-dc01 /RecordAdd gpd.lh.com _ldap._tcp SRV 0 100 389 GPD-DC02.gpd.lh. com
+dnscmd root-dc01 /RecordAdd FOXCONN-LH._sites.gpd.lh.com _ldap._tcp SRV 0 100 389 GPD-DC02.gpd.lh. com
+dnscmd root-dc01 /RecordAdd _msdcs.lh.com _ldap._tcp.d5520421-4670-44c4-b83f-449878e59367.domains SRV 0 100 389 GPD-DC02.gpd.lh. com
+dnscmd root-dc01 /RecordAdd _msdcs.gpd.lh.com _ldap._tcp.dc SRV 0 100 389 GPD-DC02.gpd.lh. com
+dnscmd root-dc01 /RecordAdd ._msdcs.gpd.lh.com _ldap._tcp.FOXCONN-LH._sites.dc SRV 0 100 389 GPD-DC02.gpd.lh. com
+dnscmd root-dc01 /RecordAdd gpd.lh.com _ldap._tcp.DomainDnsZones SRV 0 100 389 GPD-DC02.gpd.lh. com
+
+
+
+
+10.138.2.15
+10.148.8.28
+
+
+
+
+#install NetFX3.5步骤
+
+
+
+Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name UseWUServer -Value 0
+Restart-Service -Name wuauserv
+Install-WindowsFeature Net-Framework-Core -Source:C:\sxs
+Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name UseWUServer -Value 1
+Restart-Service -Name wuauserv
+
+
+#无法执行powershell时要启用
+Get-ExcutionPolicy   #查看policy状态
+Set-ExcutionPolicy RemoteSigned		#设置policy启用.
+
+#参考网页:
+
+https://blog.csdn.net/samson_www/article/details/59112724?locationNum=12&fps=1
+
+https://blog.csdn.net/ylcacsdn/article/details/82731696

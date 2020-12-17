@@ -1,0 +1,1083 @@
+K8S使用详情接简介
+LABELS:最长不超过253个字符    kubectl get pods --show-labels
+第五课
+
+创建资源的方法:
+	apiserver 仅接受JSON格式的资源定义;
+	yaml格式提供配置清单,挨批server可自动将其转为json格式(yaml->json可无损转换),在提交;
+	
+大部分资源配置清单:
+$ kubectl explain pods 查看5个一级字段
+	1. apiVersion,group/versions命令查看组别信息:
+		$ kubectl api-versions命令查看组别信息,Group/Version,		core(group省略代表核心组).
+	2. kind:资源类别(大小写区分)
+		资源,对象
+			Workload: Pod,Replicaset,Deployment,StateSet ,DaemonSet ,Job,cronJob.
+		服务发现及均衡:Service,Ingress
+		/*不确定是否属于kind字段
+		配置及存储:Volume , ,CSI(容器存储接口)
+			ConfigMap.Secret
+			DownwardAPI
+		集群级资源
+			Namesapce,Node Role,ClusterRole,RoleBinding,ClusterBinding
+		元数据型资源
+			HPA,PodTemplate,LimitRange  */
+
+	3. metadata:元数据型资源
+	$ kubectl explain pods.metadata 查看二级字段
+			name
+			namespace
+			labels(标签)
+			annotations(资源注解)
+			
+			每个资源的引用PATH(大写字符表示实际替换部分)
+				./api/GROUP/VERSION/namespaces/NAMESPACE/TYPE/NAME
+	
+	4. spec:(用户期望状态,desired state)
+	
+	5. status:当前状态,current state,本字段由k8s自行定义,用户无法更改
+	
+		
+第六课
+
+资源配置清单
+	自主式Pod资源
+	
+	资源清单格式:
+		一级字段: apiVersion(group/version[alpha|beta|stable]),
+			kind,
+			metadata(name,namespace,labels,annotations,...)
+			spec,
+			status(只读资源)
+	pod资源:
+		spec.containers([]Object>
+		- name <string>
+		  image <string>
+		  imagePullPolicy <string>
+			always,Never,IfNotPresent
+		修改镜像中的默认应用:
+			command, args
+			https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container
+		标签:char的长度<63个字符,总共小于253c
+			key=value(<63)
+			key:<63,以字母,数字开头,下划线_,-,.五类
+			value:可以为空,<63只能以字母数字开头及结尾,五类居中
+		标签选择器:
+			等值关系:=,==,!=
+			集合关系:KEY in (VALUE1,VALUE2)
+				KEY not in()
+				!KEY
+				KEY
+		许多资源支持内嵌字段:定义使用的标签选择器:
+			matchlabels:直接给定键值
+			matchExpressions:基于给定的表达式来定义使用的标签选择器,{key:"KEY",oprator:"OPRATOR",values:[VAL1,VAL2...]}
+				操作符:In,Notin,:values字段的值必须为费控列表
+				Exists,NotExists:values字段必须为空列表;
+				
+	NodeSelector <map[string]string>
+		节点标签选择器,
+	nodeName<string>
+	
+	annotations:注解
+		与label不同,不能用于筛选资源对象,仅用于为对象提供"元数据".使用describe命令
+	Pod生命周期:
+		{与主容器结束时间相同,先运行init container[1,2...](串行),执行完结束init,开始执行主容器
+		main container :post start(启动前钩子), pre stop(结束前钩子)
+			健康状态检查:liveness probe(存活状态检测),readiness probe(就绪状态检测)}
+		状态: Pending(调度尚未完成),Running,Failed,Succeeded,Unknown
+		
+		创建Pod: api-server	etcd	schdueler	api-server	etcd	kubelet	apiserver	etcd
+		
+		Pod生命周期的重要行为:
+			初始化容器:
+			容器探测:probe,(传感器)
+				liveness:3s,5s,10s,2min等等周期测试存活
+				readiness
+			钩子:
+	
+	restartPolicy:重启时间(0s,10s,20s,40s,80s,160,300s.300s为最长时间)
+		Always,OnFailure,Never,Default to Always.
+		
+	探针类型有三种:
+		ExecAction,TCPSocketAction,HTTPGetAction
+vim liveness-probe-exec.yaml		
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-exec-pod
+  namespace: default
+spec:
+  containers:
+  - name: liveness-exec-container
+    image: busybox:latest
+    imagePullPolicy: IfNotPresent
+    command: ["/bin/sh","-c","touch /tmp/healthy;sleep 30;rm  -f /tmp/healthy;sleep 3600"]
+    livenessProbe:
+      exec:
+        command: ["test", "-e","/tmp/healthy"]
+      initialDelaySeconds: 2
+      periodSeconds: 3
+
+回顾Pod字段:
+	apiVersion,kind,metadata,spec,status(只读)
+	
+	spec:
+		containers:
+		nodeSelector:
+		nodeName:
+		restartPolicy:
+		
+		containers:
+			name
+			image
+			imagePullPolicy:always,Never,IfNotPresent
+			ports:
+				name
+				containerPort
+			livenessProbe
+			readinessProbe
+			lifecycle
+		
+		ExecAction:exec
+		TCPSocketAction:tcpSocket
+		HTTPGetAction:httpGet
+		
+		
+		
+自主式建立Pod:yaml文件方式
+
+
+Pod控制器:代理人为操作,deploy方式
+	严格按照用户需求启动pod,卡了自动重启
+	ReplicationController:
+	ReplicaSet:用户期望副本数,标签选择器,pod资源模板.
+	Deployment:建立在ReplicaSet之上,通过控制ReplicaSet控制Pod,更为强大的接口
+	DeamonSet:日志程序,确保集群中每个节点都运行一个日志收集Pod,后续加节点,自动添加Pod
+	Job:任务完成后退出
+	CronJob:周期运行,前次与今次任务冲突
+	StatefulSet:
+	
+	TPR:Third Party Resources,1.2+,1.7
+	CDR:Custom Defined Resources ,1.8+
+
+	Operator: 
+	
+Helm:外壳,
+	
+	
+Service
+	
+	工作模式: userspace,iptables,ipvs
+		userspace:1.1-,依靠kubeproxy监测
+		iptables:1.10-,
+		ipvs:1.11+,启用时需在部署时添加专门选项.编辑kubelet的 配置文件,ipvs装载内核模块
+		否则会自动降级为iptables
+		
+	类型:
+		ExternalName.ClusterIP,NodePort,and LoadBalancer
+		1. ClusterIP,主要用来引入流量,只能接入集群内部流量,想接入外部流量,用NodePort
+		
+		2. NodePort,接入集群外部流量,增强ClusterIP流程如下:   网络流量框架 ，基于ipvs 或iptables 来实现。
+		NodePort: client -> NodeIP:NodePort -> ClusterIP:ServiceIP -> PodIP:containerPort
+		在NodeIP:NodePort之前添加负载均衡器,减缓node压力.
+		
+		3.在公有云环境下,LoadBalancer.增强NodeIP
+		
+		4.ExternelName,直接网络映射
+			FQDN(外部域名)
+				CNAME -> FQDN(内部域名)
+				
+		5. 无头服务:,没有ClusterIP:Headless Service,引入流量
+			将ServiceName -> PodIP,直接指向PodIP,本来解析的是ClusterIP:ServiceIP
+	资源记录:
+		SVC_NAME.NS_NAME.DOMAIN.LTD.
+		
+		svc.cluster.local.
+				redis.default.svc.cluster.local.
+		
+		
+Ingress资源:
+
+K8s核心资源:主要三个牢记:pod,controller,service
+	service:4层
+	iptables:4层
+	ipvs:4层
+	这些都是建立在Tcp/IP上,不是https
+	如果使用https:协议,要在scehduler上增加https,在每个后端服务器上配置https,
+	不能再ipvs上配置,都被调度走了,真正看到的解析DNS的IP地址取决于IPVS,必须使用VIP
+	SSL会话即贵且慢,要使用7层协议,在调度器和后端服务器之间不使用SSL会话.k8s在处理这个上
+	使用一个独特的Pod来解决,运行的7层的eg:nginx,traefik(微服务),Envoy==4.HAProxy,,先到独特pod,再内部通信到服务的podIP,使用pod去反代理,
+	之前使用service代理.框架如下:
+	############
+	客户端->loadBalancer ->nodeport ->service->独特pod(调度器pod)->服务pod
+	这样性能差.更改之后如下:
+	#############
+	客户端->LB-> 独特POd->服务pod
+	###############不需要service了.独特pod运行一个,使用DaemonSet,每个节点都能运行一个
+	#任何节点宕机都没关系,DaemonSet,但是节点太多也不行like3000个,调出三个节点专门运行独特pod,
+	解决节点太多.7层代理能力.
+	这样的三个独特pod方式,叫Ingress Controller
+	但是三个独特pod如何识别请求类型,nginx装载SQLserver,来识别请求类型.
+	
+	#使用URL映射,来处理公网主机名较少问题.
+	一个url路径映射到一个后端主机上
+	service通过标签选择器解决后端pod重启后ip更换问题,并始终watch的pod状态
+	独特pod解决这个问题的方式:
+		Ingress本身没有这个能力,只能使用service,但这个service仅仅只是分类,调度时不会经过service
+		pod变了,service资源也改变,这个service如何到前端,使用Ingress资源,资源动态注入到Ingress controller中
+		直接注入到upstream主机配置文件中,并使其重载该配置文件.也能实现7层调度/,架构:
+		######
+		externalLB -> <Service>Ingress-nginx /或者共享节点/或者DaemonSet方式-> <IngreController>Ingress-nginx ->
+		<Ingress>(虚拟主机/URL映射)->(只分类用的service,不做调度)pod
+	#############
+	设置Ingress资源时一定要使用和mage相同的环境,即不能直接使用mandnary.yaml文件,要使用相同命令,不然default-backend不会绑定nginx-ingress-controller
+	for file in namespace.yaml configmap.yaml rbac.yaml tcp-services-configmap.yaml with-rbac.yaml udp-services-configmap.yaml default-backend.yaml; do wget https://raw.githubusercontent.com/kubernetes/ingress-nginx/nginx-0.17.1/deploy/$file; done
+	具体请参考网页https://www.cnblogs.com/crazymagic/p/11267303.html
+	新版本的selector改变了,所以不能直接用madatory.yaml文件,要更改backend.yaml文件中的 标签选择器和标签才行
+	
+	特别注意:如果在配置域名解析时候出现default-backend404 错误,一定是/etc/hosts文件写错了.使得无法访问到域名的请求被
+	转移至backend对象,返回404
+	10.150.7.55 myapp.zhangbiao.com
+	10.150.7.55 tomcat.wohaoshuai.com
+	10.150.7.55 myapp.mageedu.com
+	
+
+################
+
+
+存储卷资源:volume
+	1. emptyDir: pod的临时目录.
+	2. hostPath: 主机路径,(临时)
+	3. 网络连接永久存储
+		1)SAN: iSCSI,
+			NAS:nfs,cifs
+		2)分布式存储:
+			glusterfs,ceph(rbd),cephfs
+		3) 云存储:
+			EBS,Azure Disk,
+	# kubectl explain pods.spec.volumes
+
+	
+1.  ENTRYPOINT脚本:方式直接注入资源配置.环境变量
+
+2. configMap:
+	k8s的配置中心,支持内容动态修改,明文存放,可以支持容器重载配置文件的方式重新加载进程
+	能注入到容器中,集群级资源,like:ns,pv
+3. Secrect:
+	编码存放,加密方式的存储中心,支持动态修改
+	
+	将配置文件解耦配置文件.
+	configMap:  1)存储卷方式
+				2):键值对
+配置容器化应用的方式:
+
+		1.自定义命令行参数:args
+		2.配置文件直接注入到镜像
+		3.环境变量: 两种方式
+			1)cloud Native的应用程序一般可直接通过环境变量加载配置
+			2)通过 ENTRYPOINT脚本来预处理变量为配置文件中的配置信息
+		4. 存储卷:
+		
+
+		
+pod资源环境变量的获取方式:
+	env: #kubectl explain pods.spec.containers.env
+	#kubectl explain pods.spec.containers.env.valueFrom
+	
+	
+	
+############
+之前都是无状态应用	:坏一个重启一个就好了.
+
+StatefulSet:有状态应用副本集: 写脚本注入到pod中
+	Operator:组件 .coreOS组织开发
+	cattle,pet:(群体与个体)
+	PetSet -> 更名为StatefulSet
+	
+	特性:
+	1. 稳定且唯一的网络标识符
+	2. 稳定且持久的存储
+	3. 有序.平滑地部署和扩展
+	4. 有序.平滑地终止和删除 
+	5. 有序的滚动更新
+	
+	三个组件: headless service; StatefulSet;volumeClaimTemplate(实现存储持久化,不随pod结束而重新生成)
+	
+	pod_name.service_name.ns_name.svc.cluster.local
+		myapp-0.myapp.default.svc.cluster.local
+		
+		
+		
+	
+	volumeClaimTemplate通过绑定pvc来实现持久存储.
+##扩缩pod数量。	
+kubectl scale sts myapp -replicas=3	
+kubectl patch sts myapp -p '{"spec":{"replicas":2}}'	
+	##滚动更新。
+	kubectl explain sts.spec.updateStrategy.rollingUpdate 字段。
+	myapp-0~myapp-N 其中 partition：N 代表 >= N的 myapp-？将被更新
+	更新一个后暂停，叫金丝雀发布。
+	无误后，手动补丁修改partition为0 确保所有都更新
+###k8s serviceaccount	
+kubectl ->apiserver ： 自定义模块提供多种认证.授权模块
+	k8s 认证： 1）基于http的token进行认证。
+			   2） ssl认证,https 
+			   3）RBAC授权检查机制基于角色的访问控制机制,
+			   4）另外webhook，node，abac等也可以用来认证。
+##################	k8s认证过程。		认证代表可以登录，授权才是你能做什么事情。   
+	客户端 -> 认证-> 授权 -> 准入控制
+###################	
+客户端 -> apiserver (识别请求权限)
+	user:username,uid
+	group:
+	extra:
+	特定API 资源
+	Request path :请求 restfulset 格式 ,kubectl api-versions  查看，多个版本并存使得k8s能向老版本兼容
+		http://127.0.0.1:8080/apis/apps/v1/namespaces/default/deployments/myapp-deploy/
+		kubectl apply delete 等命令操作都是转化为对上述url的http请求,为何每次请求不用认证，因为家目录下 的.kube/config
+		文件中已经包含了client-key和cert 。所以使用kubectl命令不用认证，但使用其他命令如curl还是要认证的。
+		
+		kubectl proxy --port=8080 。选择端口时，选择没有被占用的 。curl访问本地8080的时候，kubectl将请求反向代理给服务端的apiserver。
+		其中curl和kubectl之间不要认证，kubectl和apiserver之间已有认证key和cert。
+
+		举例 ，访问curl http://127.0.0.1:8081/api/v1/namespaces    ：此处访问的是api/v1 而不是apis/apps 是因为api/v1 是核心群组去访问，是特殊的API。
+		如果访问失败提示未授权，可能本地使用了代理服务，关掉http_proxy ,unset http_proxy,unset https_proxy
+		之后访问ok了。
+		一般都要从apis/apps 开始e.g.: curl http://127.0.0.1:8081/apis/apps/v1/namespaces/kube-system/deployments/coredns
+	HTTP request verb: 请求动作标明。
+		get , post, put,delete 
+	API requests verb: http的请求动作映射到api中
+		get,list ,create,update,patch ,watch,proxy,redirect,delete,deletecollection
+		
+	Resource: 请求的资源
+	
+	Subresource
+	Namespace 
+	API group 
+	
+	apiserver 有两种客户端， 1） 人用的客户端 userAccount
+							 2） pod 用的客户端  serviceAccountName 字段。
+输出yaml 文件的两种方法	
+1） 单个模块输出
+kubectl create serviceaccount mysa -o yaml --dry-run 
+输出：
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  creationTimestamp: null
+  name: mysa
+
+使用dry-run 的方式生成一个框架。不需要自己单个写。。只要支持create 就可以这样做。 kubectl create 封装了很多复杂指令。
+kubectl create -h 查看。
+
+2） 整个pod输出 yaml。指定pod名称，但需要了解很多字段。
+kubectl get po myapp-deploy-5db5c9f8f-2nsdl -o yaml --export
+
+认证代表可以登录，授权才是你能做什么事情。     sa是用来连接多个集群。
+ kubectl create  sa  admin --dry-run
+  kubectl create  sa  admin 
+  kubectl get sa
+  kubectl describe sa admin
+  kubectl get secret 可以看到又新创建了一个admin-token-xxx 这个代表你的serviceaccount 可以登录到apiserver
+  但是具体可以做哪些事情还需要对账户进行授权。如何使用自定义账户，在pod-demo中的spec字段下添加
+  serviceAccountName: admin  即可。serviceAccountName 是pod级别的资源。
+
+@####在pod上进行认证的两种方式
+1） 在pod中直接指明 pods.spec 字段 指明 imagePullSecrets： 
+2） 在sa中指明kubectl describe sa admin 中的 Image pull secrets:  <none> 字段，再在pod中指明要用的sa，多分了一层
+使得 secret更安全。
+
+
+
+#####授权模式，rbac的实现，基于角色的访问控制
+
+kubeconfig 是apiserver的客户端。连入认证。连接多个集群
+# kubectl config view
+
+
+####################
+#############创建账户。
+##创建一个私有key文件，magedu.key
+#子shell创建key
+# cd /etc/kubernetes/pki   #该目录下包含集群认证证书，很重要，不要泄露。
+# (umask 077;openssl genrsa -out magedu.key 2048) 
+#运行后可以在目录下看到key文件。
+##创建一个证书签署请求
+openssl req -new -key magedu.key -out magedu.csr -subj "/CN=magedu"    #/CN 是要创建的账号名称。
+###用ca 去签证。-CA 选项是指定ca证书 这里是当前目录下的ca.crt 文件，-CAkey 指定CA的私钥 -CAcreateserial 指定创建序列号 -out 输出格式
+# openssl x509 -req -in magedu.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out magedu.crt -days 365 #默认有效期365天
+
+###查看证书信息
+ openssl x509 -in magedu.crt -text -noout
+ 
+ 
+####应用到集群证书， --embed-cert=true 代表隐藏起来。kubectl config set-credentials --help 查看帮助。
+# kubectl config set-credentials magedu --client-certificate=./magedu.crt --client-key=./magedu.key --embed-certs=true
+
+# kubectl config view #查看到magedu.crt
+
+###设置文本
+ kubectl config set-context --help #查看帮助
+# kubectl config set-context magedu@kubernetes --cluster=kubernetes --user=magedu
+ 指定集群名字和用户名建立 set-context。kubectl config view 可以查看 set-context set-credentials set-cluster .
+ kubectl config set-cluster --help.
+ 
+#切换magedu账号
+# kubectl config use-context magedu@kubernetes
+# kubectl get po  #这里提示错误，不是管理员账户了，已经切换为magedu账户。无权访问。
+ Error from server (Forbidden): pods is forbidden: User "magedu" cannot list resource "pods" in API group "" in the namespace "default"
+# kubectl config use-context kubernetes-admin@kubernetes  #切换回管理员。kubectl config view 查看账户，集群和context
+
+####设置 set-cluster
+# kubectl config set-cluster mycluster --kubeconfig=/tmp/test.conf --server="https:172.20.20.3:6443" --certificate-authority=/etc/kubernetes/pki/ca.crt  --embed-certs=true
+# kubectl config view --kubeconfig=/tmp/test.conf  #查看指定配置文件 kubectl config -h 查看 --kubeconfig 选项。
+ 
+############################
+###############RBAC 授权讲解。
+
+##授权插件： Node ,ABAC(基于属性的访问控制),RBAC（基于角色的访问控制），webhook（基于http的回调机制。）
+	RBAC： Role-based AC
+	
+	角色（role） 许可授权先授予角色，再把角色赋值给user 。
+	许可（permission）
+	
+k8s ： 对象，对象列表，非对象资源
+	object ，list， non-object
+	
+	operations -action(对象上施加的行为)->  objects   # 行为的组合叫permissions。
+	
+	get ，head，put,post,patch,delete 
+	user account
+	pod service account   
+	Object url:
+		/api/v1/namespaces
+		/api/GROUP/VERSION/namespaces/NAMESPACE/TYPE/NAME
+		完整路径： /apis/<GROUP>/<VERSION>/namespaces/<NAMESPACE_NAME>/<KIND>[/OBJECT_ID]
+		
+	
+	role：
+		operations
+		objects
+	rolebinding：只对当前名称空间生效
+		user account or service account
+		role
+	cluster-role：
+	cluster-rolebinding: 
+k8s资源的两种级别：
+	1. 集群
+	2. 名称空间
+	
+#######创建role --resource 指定pods资源，看不了rs ns，等
+kubectl create role pods-reader  --verb=get,list,watch  --resource=pods --dry-run -o yaml
+kubectl create role --help 查看帮助
+
+#kubectl create role pods-reader  --verb=get,list,watch  --resource=pods --dry-run -o yaml >role-demo.yaml
+#vim role-demo.yaml
+#kubectl apply -f role-demo.yaml
+#kubectl get role
+# kubectl describe role pods-reader
+
+
+
+##########  1. role和rolebinding  只针对名称空间生效，只能看默认。
+
+###rolebinding 绑定role 和magedu 的useraccount。 role和rolebinding 
+kubectl create rolebinding magedu-read-pods --role=pods-reader --user=magedu --dry-run -o yaml > rolebinding-demo.yaml
+然后kubectl apply
+使用magedu账户测试
+kubectl config use-context magedu@kubernetes  #切换账号后一个终端所有的shell上账号都切换了 ,使用不同的系统账户可以解决，root，ik8s
+kubectl config view
+kubectl get pods 
+kubectl get pods -n kube-system 失败，因为在role-demo中名称空间为default ，不指定也是default ，无法看到别的名称空间内容,而且只是指定了pods，无法看到ns等资源
+ : Error from server (Forbidden): pods is forbidden: User "magedu" cannot list resource "pods" in API group "" in the namespace "kube-system"
+##################
+
+#创建clusterrole 角色，这里的clusterrole 指定的是所有名称空间的 all-namespaces ，所以magedu账户一会儿可以kubectl get po -A
+kubectl create clusterrole cluster-reader --verb=get,list,watch --resource=pods -o yaml --dry-run >clusterrole-demo.yaml
+切换回管理员账户，不然forbidden
+kubectl config use-context  kubernetes-admin@kubernetes
+kubectl apply -f clusterrole-demo.yaml
+
+#创建一个系统账户ik8s 
+useradd ik8s
+cp -rp .kube/ /home/ik8s
+chown -R ik8s.ik8s /home/ik8s
+#切换系统账户
+su - ik8s
+$  kubectl config view
+$  kubectl config use-context  magedu@kubernetes   #ik8s账户 查看到当前magedu账户
+#  kubectl config view # 系统root账户查看到还是kubernetes-admin 账户，不是magedu。
+
+
+##################  2. 绑定clusterrole 和clusterrolebinding ，可以看所有名称空间。
+
+#创建clusterrolebinding，只能绑定clusterrole 不能绑定role（不支持）。绑定clusterrole 和clusterrolebinding
+# kubectl create clusterrolebinding magedu-read-all-pods --clusterrole=cluster-reader --user=magedu --dry-run -o yaml
+# kubectl get clusterrole 
+#kubectl create clusterrolebinding magedu-read-all-pods --clusterrole=cluster-reader --user=magedu --dry-run -o yaml > clusterrolebinding-demo.yaml
+# vim clusterrolebinding-demo.yaml  # 删除第四行creationTimestamp 
+# kubectl apply -f clusterrolebinding-demo.yaml
+#kubectl get clusterrolebinding
+# kubectl describe clusterrolebinding magedu-read-all-pods
+
+# 切换到magedu账户的shell上
+查看 kubectl get pods 
+
+
+###################  3. clusterrole 和rolebinding  cluster所针对的权限只针对rolebinding 所在的名称空间生效使得clusterrole 被降级。
+######三个的区别：
+
+clusterrole 和rolebinding 这两个绑定是一个名称空间的 管理员，
+clusterrole 和clusterrolebinding 是整个集群的管理员
+role和rolebinding 是名称空间的普通用户
+# kubectl get clusterrole 查看角色
+kuebctl get clusterrole admin -o yaml  #查看admin权限
+# kubectl create rolebinding default-ns-admin  --clusterrole=admin --user=magedu #创建rolebinding和clusterrole的默认名称空间管理员。default-ns-admin.
+##切换到magedu的shell ，已经具有删除权限了。可以删除集群角色admin所具有的的所有权限并降级到默认名称空间default
+kubectl delete pods  myapp-deploy-5db5c9f8f-nt8k2
+kubectl delete deploy myapp-deploy  #正常
+kubectl get po -A # 无效forbidden
+： Error from server (Forbidden): pods is forbidden: User "magedu" cannot list resource "pods" in API group "" in the namespace "kube-system"
+
+##########证书之中定义的cluster-admin 
+# kubectl get clusterrolebinding cluster-admin -o yaml  #看到subjects 中定义的组system：master
+# kubectl config view # 看到kubernetes-admin 账户
+# 查看api-client 证书之中定义的cluster-admin
+#cd /etc/kubernetes/pki
+#查看证书文件 .crt
+# openssl x509 -in  apiserver-kubelet-client.crt -text -noout
+#查看subject 
+ 这一行 ： Subject: O=system:masters, CN=kube-apiserver-kubelet-client
+ 其中CN=kube-apiserver-kubelet-client 就是kubernetes-admin 账户。
+ 
+ #创建pod时候指定 serviceAccountName ，当这个sa授予权限时 ，pod也具有了sa的权限。
+ rolebinding ：serviceaccount
+ role。.
+ 
+#后期dashbord 具有集群内的很多权限
+。
+
+
+
+##### magedu -> rolebinding  - cluster-read-all-pods 
+#先删掉对比一下。 
+# kubectl delete clusterrolebinding magedu-read-all-pods
+
+
+
+
+#创建rolebinding 
+# kubectl create rolebinding --help
+# kubectl create rolebinding magedu-read-pods --clusterrole=cluster-reader --user=magedu --dry-run -o yaml> rolebinding-clusterrole-demo.yaml
+# vim 一下，删除creationTimestamp ，替换namespace：default 
+kubectl apply -f   rolebinding-clusterrole-demo.yaml
+
+#切换到magedu的shell 查看
+kubectl get pod # 正常
+kubectl get pod -n kube-system # 返回错误forbid
+ ： Error from server (Forbidden): pods is forbidden: User "magedu" cannot list resource "pods" in API group "" at the cluster scope
+
+
+ 
+ 
+ 
+rest ：表征状态转移。restful。
+xml，json ，yaml
+k8s使用json格式，yaml去写配置，转换为json格式处理配置文件。
+###
+
+
+###################  kubernetes ： 认证 ，授权 总结
+	API server：
+		subject --> action --object
+	认证： token,tls, user/password
+		账号： UserAccount ， ServiceAccount
+	授权： RBAC 四种资源
+		role ， rolebinding ，
+		clusterrole ， clusterrolebinding
+		rolebind clusterrolebinding
+			subject： 三类主体
+				user
+				group
+				serviceaccount
+
+		role,clusterrole
+			object: k8s上资源
+				resource group 
+				resource
+				non-resource url
+		
+		action ；get ,list,watch ,patch ,delete ,deletecollection,...
+		
+Dashboard : 认证代理，账号都是k8s账号非dashboard账号。
+https://github.com/kubernetes/dashboard  
+安装dashboard
+kubectl get po -A 查看dashboard
+kubectl get po -n kubernetes-dashboard
+	1。 部署：
+	# kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.4/aio/deploy/recommended.yaml
+	2. 	将service 改为NodePort
+	# kubectl patch svc kubernetes-dashboard -p '{"spec":{"type":"NodePort"}}' -n kubernetes-dashboard
+	3. 认证： 
+		认证账号必须为ServiceAccount： 被dashboard pod 拿来由 kubernetes 进行认证
+		
+		token：
+			1） 创建sa，根据其管理目标，绑定至合理的role，clusterrole，使用rolebinding 或clusterrolebinding。
+			2） 获取此sa的secret 信息， describe 对应的secret 的token信息。
+		
+		kubeconfig：  其实是将sa创建的token封装成kubeconfig文件。
+			1） 同上
+			2)  kubectl get secret |awk '/^ServiceAccount/{print $1}'
+			# json输出，base64 解码
+			DEF_NS_ADMIN_TOKEN=$(kubectl get secret def-ns-admin-token-stdhs -o jsonpath={.data.token} |base64 -d)
+			
+			3） 生成config 文件 
+			kubectl config set-cluster  --kubeconfig=/PATH  #指定输出文件。
+			kubectl config set-credentials NAME --token=$KUBE_TOKEN
+			kubectl config set-context
+			kubectl config use-context
+
+
+
+#查看dashboard的svc，看到svc的type是clusterIP ，更改为nodeport 或ingress方式。使得可以集群外部链接
+kubectl get svc -n kubernetes-dashboard
+#直接打补丁。
+# kubectl patch svc kubernetes-dashboard -p '{"spec":{"type":"NodePort"}}' -n kubernetes-dashboard
+#继续查看svc端口
+# kubectl get svc -n kubernetes-dashboard
+看到已绑定，访问30625 端口
+   kubernetes-dashboard   kubernetes-dashboard        NodePort    10.96.27.207    <none>        443:30625/TCP                6m19s
+https://10.150.7.55:30625
+或者集群内其他节点的IP ，master也可以 https://10.134.196.21:30625
+注意是https ，因为server 做了https认证，处理https请求。
+#########访问时需要kubeconfig 认证或者token 令牌认证  两种
+当前CA签署的证书。提前创建一个secret ，当前系统的crt认证https 请求。
+
+###########自定义部署dashboard 。
+
+################ 证书认证 。
+#1. 建立一个dashboard证书
+	# 创建key   
+	# (umask 077 ;openssl genrsa -out dashboard.key 2048)
+	# 创建签署请求
+	# openssl req -new -key dashboard.key -out dashboard.csr -subj "/O=magedu/CN=dashboard"
+	#注意 上一行的 /CN 选项一定要和域名一致 ，如ui.magedu.com
+	# 创建证书：
+	# openssl x509 -req -in dashboard.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out dashboard.crt -days 365
+	#把证书创建一个secret 。
+	secret 三种格式: docker registry
+			  generic
+			  tls 
+	因为dashboard是内部程序，而非简单的ipvs服务，所以生成的secret类型为 generic
+	# kubectl create secret generic  dashboard-cert -n kube-system --from-file=dashboard.crt=./dashboard.crt --from-file=dashboard.key=./dashboard.key
+	创建成功后查看 secret 。
+	# kubectl get secret -n kube-system
+	# 还是要配置服务。
+	kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.4/aio/deploy/recommended.yaml
+	# 在kubernetes-dashboard 名称空间创建secret generic。
+	 kubectl create secret generic  dashboard-cert -n kubernetes-dashboard --from-file=dashboard.crt=./dashboard.crt --from-file=dashboard.key=./dashboard.key
+	#主体必须是 ServiceAccount 不是ua，
+	
+	
+	
+	
+##################### token 认证 。全部权限。
+1. 创建一个sa 账户 在kubernetes-dashboard 名称空间
+# kubectl create sa dashboard-admin -n kubernetes-dashboard 
+
+
+2. clusterrolebinding 和集群管理员创建一个bind ，并指定namespace ：user
+#  kubectl create clusterrolebinding dashboard-cluster-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:dashboard-admin
+
+
+3. 找到dashboard-admin 的sa账户对应的token
+# kubectl get secret -n kubernetes-dashboard
+dashboard-admin-token-jkz94 
+# kubectl describe secret dashboard-admin-token-jkz94  -n kubernetes-dashboard
+查看secret-token 详情，复制token令牌。
+# 将重新建立的dashboard 打补丁使得外部可以访问。
+#  kubectl patch svc kubernetes-dashboard -p '{"spec":{"type":"NodePort"}}' -n kubernetes-dashboard
+# https: 访问 https://10.150.7.55:30324/ ，将令牌复制过去。注意复制的时候不要有多余的空格，不然什么都不会显示。
+
+
+########创建 token认证： 只拥有default名称空间。 kubeconfig 认证。
+	1. 创建default 名称空间的 rolebinding 使得只具有default名称空间的admin权限
+	# kubectl create sa def-ns-admin -n default
+	 ### rolebinding的名字也叫def-ns-admin ，可以不同名字。
+	# kubectl create rolebinding def-ns-admin --clusterrole=admin --serviceaccount=default:def-ns-admin
+	
+	##创建用户测试 。
+	###创建集群set-cluster ，--kubeconfig 指定文件  ，文件没有的话直接创建。
+	# kubectl config set-cluster kubernetes --certificate-authority=./ca.crt --server="https://10.134.196.21:6443" --embed-certs=true --kubeconfig=/root/def-ns-admin.conf
+	#查看
+	# kubectl config view --kubeconfig= /root/def-ns-admin.conf
+	
+	#kubectl config set-credentials --help  直接设置token
+	# kubectl get secret 
+	# kubectl describe secret def-ns-admin-token-stdhs # 复制token 信息。
+	token：eyJhbGciOiJSUzI1NiIsImtpZCI6InhEMVdrVUx3Sl9LVDRSVGxIX3dXaVVkbTY5dmY3TW9VOVBOM0FEa0N4ODQifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZi1ucy1hZG1pbi10b2tlbi1zdGRocyIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJkZWYtbnMtYWRtaW4iLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiI0Y2EzYjBmNi0xNjk0LTRmZmYtYjIwMS1kOGM3Nzk5M2YwOTgiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6ZGVmYXVsdDpkZWYtbnMtYWRtaW4ifQ.YJf93RrkneyUWY8w_UV7F4Zo0-R6TxgubfSArKrBP8AizANLfCgUK9GK0Y4EgXoEl-amAT1hqTRTxmBLfrvv6HXtcdEWy70xjflT6Lh-ZsqGshGkUn2TD0yLNCnnZfEaheQ8xCwqA-jw_tWFFzA_kWLZMOau-QEh_UjJP8ifQP1-e1riAMX_Bems6nP34_gGevPzsVnippTGPUGNwOMQTvESUSQGl-JXTznjRcjbtEhqEEy62gBF_W3gYf7b76CR8JpXm3_LjkYF5NTelmN_yHPbx1E1CGTSbiXkbC4WAvApBo7nRtwr3Kf6oF160kV0IC5MPxVPIsZPGNV_V7Mt9g
+	# kubectl config set-credentials def-ns-admin --token=    ## --token指定上一行token信息。
+	
+	
+	######或者换一种获取token的方法。
+	# kubectl get secret def-ns-admin-token-stdhs -o jsonpath={.data.token} |base64 -d   # json格式输出，jsonpath 指明路径，base64 解码json格式 中的token
+	赋值变量DEF_NS_ADMIN_TOKEN
+	# DEF_NS_ADMIN_TOKEN=$(kubectl get secret def-ns-admin-token-stdhs -o jsonpath={.data.token} |base64 -d)
+	# 继续上一步指定认证token ,并指定配置文件为def-ns-admin.config
+	#  kubectl config set-credentials def-ns-admin --token=$DEF_NS_ADMIN_TOKEN --kubeconfig=/root/def-ns-admin.config
+	#查看
+	 # kubectl config  view --kubeconfig=/root/def-ns-admin.conf 
+	 # 设置set-context 
+	 # kubectl config set-context def-ns-admin@kubernetes --cluster=kubernetes --user=def-ns-admin --kubeconfig=/root/def-ns-admin.conf
+	 # 使用kubernetes账户def-ns-admin   use-context
+	 # kubectl config use-context def-ns-admin@kubernetes --kubeconfig=/root/def-ns-admin.conf
+	 # 查看当前账户。kubectl config view --kubeconfig=/root/def-ns-admin.conf
+	 #####将账户配置文件拷贝到本地 ，网页登录
+	 # sz /root/def-ns-admin.conf
+	 
+	
+########################
+kubernetes 集群管理方式
+		1. 命令式 create，run,expose ,delete
+		2。 命令式配置文件 create -f /PATH/FILE ,delete -f ,replace  -f   ，替换修改。
+		3. 声明式配置文件: apply -f  ，删除也用apply（apply一个空文件），patch
+		
+18课。
+	
+
+
+
+
+
+
+
+
+	
+root@PTY:~/manifests# vim pod-demo.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-demo
+  namespace: default
+  labels:
+    app: myapp
+	#架构分层,frontend,backend,data.
+    tier: frontend
+spec:
+  containers:
+  - name: myapp
+    image: dockerptu/httpd:v0.3
+    ports:
+    - name: http
+      containerPort: 80
+    - name: https
+      containerPort: 443
+  - name: busybox
+    image: busybox:latest
+    imagePullPolicy: IfNotPresent
+    command:
+    - "/bin/sh"
+    - "-c"
+    - "sleep 3600"
+~                      
+分级别:
+qa/test,develop/production
+
+实例讲解:
+1505  kubectl get ns
+ 1506  kubectl get pods-n kube-public
+ 1507  kubectl get pods -n kube-public
+ 1508  kubectl get pods -n kube-system -o wide
+ 1509  kubectl -h
+ 1510  kubectl create -h
+ 1511  kubectl api-resources
+ 1512  kubectl get deploy
+ 1513  kubectl get deploy -n kube-system
+ 1514  kubectl create -h
+ 1515  kubectl create namesapce develop
+ 1516  kubectl create namespace develop
+ 1517  kubectl create namespace testing
+ 1518  kubectl create namespace prod
+ 1519  kubectl get ns
+ 1520  kubectl delete namespaces develop
+ 1521  kubectl get ns
+ 1522  kubectl delete ns/testing ns/prod
+ 1523  kubectl get ns
+ 1524  kubectl get ns/default -o yaml
+ 1525  kubectl get ns/default -o json
+ 1526  kubectl describe ns/default
+ 1527  kubectl create deployment -h
+ 1528  kubectl create deploy ngx-dep --image=nginx:1.14-alpine
+ 1529  kubectl get all
+ 1530  kubectl get pods
+ 1531  kubectl get pods -o wide
+ 1532  curl 10.244.1.2
+ 1533  ping 10.39.1.189
+ 1534  kubectl delete pods/ngx-dep-d554574bd-47czs
+ 1535  kubectl pods -o wide
+ 1536  kubectl get pods -o wide
+ 1537  kubectl create service -h
+ 1538  kubectl create service clusterip -h
+ 1539  kubectl create service clusterip ngx-svc --tcp=80:80 
+ 1540  kubectl get svc
+ 1541  kubectl get svc/ngx-svc -o yaml
+ 1542  kubectl delete svc/nsx-svc
+ 1543  kubectl delete svc/ngx-svc
+ 1544  kubectl create service clusterip ngx-dep --tcp=80:80 
+ 1545  kubectl get svc/ngx-dep -o yaml
+ 1546  kubectl describe svc/ngx-dep
+ 1564  kubectl get -A
+ 1565  kubectl get pod -A
+ 1566  kubectl expose --name=nginx --port=80 --target-port=80 --protocol=TCP
+ 1567  history |tail -100
+ 1568   kubectl get deploy
+ 1569  kubectl expose deployment nginx-deploy --name=nginx --port=80 --target-port=80 --protocol=TCP
+ 1570  kubectl get deploy -n kube-system
+ 1571  kubectl get deploy -o wide
+ 1572  kubectl expose deployment ngx-dep --name=nginx --port=80 --target-port=80 --protocol=TCP
+ 1573  kubectl get svc
+ 1574  kubectl get svc -o wide
+ 1575  kubectl get pods -o wide
+ 1576  kubectl get all
+ 1577  yum install bind-utils -y
+ 1578  dig -t A nginx @10.96.0.10
+ 1579  history |tail -200
+ 1580  kubectl get pods
+ 1581  dig -t A nginx.default.svc.cluster.local
+ 1582  dig -t A nginx.default.svc.cluster.local @10.96.0.10
+ 1583  kubectl get pods
+ 1584  kubectl delete pods/ngx-dep-d554574bd-x4ffh
+ 1585  kubectl get pods
+ 1586  kubectl get pods -o wide
+ 1587  kubectl get svc
+ 1588  kubectl describe pods
+ 1589  kubectl describe svc nginx
+ 1590  kubectl get pods --show-labels
+ 1591  kubectl describe svc nginx
+ 1592  kubectl edit svc nginx
+ 1593  kubectl describe svc nginx
+ 1594  kubectl edit svc nginx
+ 1595  kubectl describe svc nginx
+ 1596  kubectl delete svc nginx
+ 1597  kubectl get svc
+ 1598  kubectl expose deployment ngx-dep --name=nginx
+ 1599  kubectl expose deployment ngx-dep --name=nginx 
+ 1600  history |tail -50
+ 1601  kubectl expose deployment ngx-dep --name=nginx --port=80 --target-port=80 --protocol=TCP
+ 1602  kubectl get svc
+ 1603  kubectl delete ngx-dep
+ 1604  kubectl delete svc ngx-dep
+ 1605  kubectl get svc
+ 1606  kubectl delete svc nginx
+ 1607  kubectl expose deployment ngx-dep --name=nginx 
+ 1608  kubectl expose -h
+ 1609  kubectl expose deployment ngx-dep --name=nginx --port=80 --target-port=80 --protocol=TCP
+ 1610  kubectl get svc
+ 1611  kubectl get all
+ 1612  kubectl delete svc nginx
+ 1613  kubectl expose deployment ngx-dep --name=nginx --port=80 --target-port=80 --protocol=TCP
+ 1614  kubectl get svc
+ 1615  kubectl describe deployment ngx-dep
+ 1616  docker login
+ 1617  igure a credential helper to remove this warning. See
+ 1618  https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+ 1619  docker pull  dockerptu/httpd
+ 1620  docker pull  dockerptu/httpd:v0.3
+ 1621  docker image ls
+ 1622  kubectl run myapp --image=                                        v0.2-1              21080aa7dab3        4 weeks ago         1.22MB
+ 1623  tinyhttpd                                           v0.1-9              6170ff23f52f        4 weeks ago         8.39MB
+ 1624  kubectl run myapp --image=dockerptu/httpd:v0.3 --replicas=2
+ 1625  kubectl get deployment
+ 1626  kubectl get deployment -w
+ 1627  kubectl get deployment
+ 1628  kubectl get pods -o wide
+ 1629  kubectl expose deployment myapp --name=myapp --port=80 
+ 1630  kubectl get svc
+ 1631  kubectl get pods -o wide
+ 1632  kubectl delete pods/client
+ 1633  kubectl scale --replicas=5 deployment myapp
+ 1634  kubectl get pods
+ 1635  kubectl scale --replicas=3 deployment myapp
+ 1636  docker image ls
+ 1637  docekr ps -a
+ 1638  docker ps -a
+ 1639  docker container start b1
+ 1640  docker exec -it b1 /bin/sh
+ 1641  docker ps -a
+ 1642  kubectl get pods
+ 1643  kubectl set image -h
+ 1644  kubectl get pods
+ 1645  kubectl describe myapp-5cd75fb7c8-6fq29 
+ 1646  kubectl describe podsmyapp-5cd75fb7c8-6fq29 
+ 1647  kubectl describe pods myapp-5cd75fb7c8-6fq29 
+ 1648  kubectl set image deployment myapp myapp=dockerptu/httpd:v0.3
+ 1649  kubectl set image deployment myapp myapp=dockerptu/myapp:latest
+ 1650  kubectl rollout status deployment myapp
+ 1651  kill -9 %1
+ 1652  kubectl rollout undo -h
+ 1653  kubectl rollout undo deployment myapp 
+ 1654  kubectl get pod
+ 1655  push dockerptu/mya
+ 1656  history |tail -50
+ 1657  kubectl explain pod -h
+ 1658  kubectl explain pods
+ 1659  kubectl explain pods.metadata
+ 1660  kubectl explain pods.spec
+ 1661  kubectl explain pods.spec.containers
+ 1662  kubectl explain pods.spec.containers.livenessProbe
+ 1663  clear
+ 1664  ls
+ 1665  clear
+ 1666  mkdir manifests
+ 1667  cd manifests/
+ 1668  ls
+ 1669  vim pod-demo.yaml
+ 1670  kubectl create -f pod-demo.yaml 
+ 1671  kubectl get pods
+ 1672  kubectl describe pods pod-demo
+ 1673  kubectl get pods
+ 1674  kubectl logs pod-demo myapp
+ 1675  kubectl logs pod-demo myapp
+ 1676  clear
+ 1677  kubectl delete pods pod-demo
+ 1678  kubectl create -f pod-demo.yaml 
+ 1679  kubectl get pods
+ 1680  kubectl exec -it pod-demo -c  myapp -- /bin/sh
+ 1681  kubectl describe pods pod-demo
+ 1682  kubectl get pods
+ 1683  kubectl delete pod pod-demo
+ 1684  vim pod-demo.yaml 
+ 1685  kubectl delete -f pod-demo.yaml 
+ 1686  kubectl get pods
+ 1687  kubectl delete -f pod-demo.yaml 
+ 1688  kubectl create -f pod-demo.yaml 
+ 1689  kubectl delete -f pod-demo.yaml 
+ 1690  ls
+ 1691  sll
+ 1692  ll
+ 1693  cat pod-demo.yaml 
+ 1694  docker imager ls
+ 1695  docker image ls
+ 1696  docker ps -a
+ 1697  docker start web1
+ 1698  docker exec -it  web1 /bin/sh
+ 1699  vi pod-demo.yaml 
+ 1700  kubectl explain pods.spec.containers
+ 1701  vim pod-demo.yaml 
+ 1702  kubectl explain pods.spec.containers.ports
+ 1703  vim pod-demo.yaml 
+ 1704  kubectl scale --replicas=1 deployment myapp
+ 1705  kubectl label -h
+ 1706  kubectl label pods pod-demo release=canary
+ 1707  kubectl get pods -l app --show-label
+ 1708  kubectl get pods -l app --show-labels
+ 1709  kubectl label pods pod-demo release=stable
+ 1710  kubectl label pods pod-demo release=stable --overwrite
+ 1711  kubectl get pods -l app --show-labels
+ 1712  kubectl get pods -l release
+ 1713  kubectl get pods -l release,app
+ 1714  kubectl get pods -l release=stable --show-labels
+ 1715  kubectl label pods ngx-dep-d554574bd-77dfd release=canary
+ 1716  kubectl get pods -l release
+ 1717  kubectl get pods -l release=canary
+ 1718  kubectl get pods -l release,app
+ 1719  kubectl get pods -l release=stable,app=myapp
+ 1720  name(){ arg1=$1; arg2=$2; command on arg1; }
+ 1721  name foo bar
+ 1722  ll
+ 1723  vim passed.sh
+ 1724  sh passed.sh 
+ 1725  ss -tnl
+ 1726  top
+ 1727  pid=1
+ 1728  echo $pid
+ 1729  echo $1
+ 1730  [ -d "/proc/1" ] && return 0
+ 1731  [ -d "/proc/1" ] 
+ 1732  echo $?
+ 1733  ll /proc/1
+ 1734  ll /proc/[0-9]
+ 1735  yday() { date --date="1 day ago"; }
+ 1736  yday
+ 1737  ll
+ 1738  ./passed.sh
+ 1739  chmod u+x passed.sh 
+ 1740  ping wintel.foxera.com
+ 1741  ll
+ 1742  cd img1
+ 1743  ll
+ 1744  cd
+ 1745  touch imgabc
+ 1746  ll .|grep -e "img."
+ 1747  curl 10.244.1.4
+ 1748  curl 10.96.76.254
+ 1749  curl nginx
+ 1750  cat /etc/resolv.conf 
+ 1751  kubectl get pods -n kube-system -o wide
+ 1752  kubectl get svc -n kube-system
+ 1753  dig -t A nginx @10.96.0.10 
+ 1754  yum install bind-utils -y
+ 1755  kill -9 %1
+ 1756  jobs
+ 1757  dig -t A nginx @10.96.0.10 
+ 1758  clear
+ 1759  kubectl run --help
+ 1760  kubectl run client --image=busybox --replicas=1 -it --restart=Never
+ 1761  kubectl get image
+ 1762  kubectl get -h
+ 1763  kubeadm -h
+ 1764  kubectl image
+ 1765  kubectl --help
+ 1766  kubectl attach client -it
+ 1767  kubectl get pods
+ 1768  kubectl delete client
+ 1769  kubectl delete pods client
+ 1770  kubectl get pods
+ 1771  docker image ls
+ 1772  history 
+ 1773  kubectl get all
+ 1774  kubectl logs pods pod/myapp-6d5959df6c-rnw2v
+ 1775  kubectl logs pod pod/myapp-6d5959df6c-rnw2v
+ 1776  kubectl logs  pod/myapp-6d5959df6c-rnw2v
+ 1777  kubectl describe pod pod/myapp-6d5959df6c-rnw2v
+ 1778  history |tail -50
+ 1779  env
+ 1780  unset http_proxy
+ 1781  unset https_proxy
+ 1782  curl 10.244.1.3
+ 1783  bash
+ 1784  env
+ 1785  curl 10.96.115.149
+ 1786  curl ngx-dep
+ 1787  kubectl get -n kube-system
+ 1788  kubectl get pods -n kube-system
+ 1789  kubectl get svc -n kube-system
+ 1790  vim /etc/resolv.conf 
+ 1791  curl ngx-dep
+ 1792  curl ngx-dep.default.svc.cluster.local
+ 1793  bash 
+ 1794  docker commit b1 b1:myapp
+ 1795  docker container ls
+ 1796  docker image ls
+ 1797  docker image -h
+ 1798  docker image rm b1
+ 1799  docker image rm b1:myapp
+ 1800  docker ps -a
+#创建configmap 方式1
+kubectl create configmap  nginx-config --from-literal=nginx_port=80 --from-literal=server_name=myapp.mageedu.com 
+方式2 ：
+创建www.conf
+
+server{
+    server_name myapp.magedu.com;
+    listen 80;
+    root /data/www/html
+}
+#两个等号--from-file 代表键值对 key=www & value= ./www.config
+kubectl create configmap nginx-www --from-file=www=./www.config 
+#也可以使用一个等号,此时，key=www.config & value = 文件内容
+kubectl create configmap nginx-www --from-file=./www.config 
+
+
+####secret
+kubectl create secret --help

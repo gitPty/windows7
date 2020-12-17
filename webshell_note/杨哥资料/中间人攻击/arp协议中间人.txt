@@ -1,0 +1,64 @@
+arp协议的中间人攻击：
+
+arp ：地址解析协议，将IP地址转换为MAC地址
+
+http:明文协议
+
+中间人攻击向目标机器发送“我是网关”，向网关发送“我是请求机器”，这样所有的数据包都会经过中间人，
+如果有http的协议访问，则得到全部密码。
+
+
+# ettercap -G		 图形化
+sniff hosts
+set target，target1 is target host, target2 is gateway
+然后选择M 开头下的ARP poisoning ，选择remote的sniff。
+在目标主机访问网站，例如某些http:网站，明文登录，密码会被传输，。错误密码也一样。登录信息会被抓取。
+
+
+##########
+如何防御：
+	服务器端要使用非明文
+	HTTPS:加密机制 ，CA认证。
+	##公钥加密，私钥解密。私钥签名，公钥验证签名
+	服务端公钥加密，CA签名，客户端有CA证书，验证CA签名
+	
+	搭建环境wordpress，购买免费证书，保护域名。
+	申请完，下载配置 e.g.：apache。解压后两个文件私钥，公钥，.pem和.key文件，对应公钥和私钥
+	cp -rf .key /etc/httpd
+	cp -rf .pem /etc/httpd
+	#安装SSL模块支持https:
+	# yum -y install mod_ssl
+	# vim /etc/httpd/conf.d/ssl.config
+		SSLCertificateFile 			.pem		//公钥证书
+		SSLCertificateKeyFile 		.key		//s私钥文件
+	#systemctl restart httpd
+	# ss -tnlp|grep 80
+	# ss -tnlp|grep 443
+	
+		
+	
+	客户端使用静态MAC地址。
+	直接百度arp 绑定IP与mac地址静态类型。
+	# arp -s 192.168.128.218  00:50:56:9d:2b:cb #这条为临时添加，重启失效
+	#通常使用netsh 绑定,windows7环境，客户端防御
+	测试时 可以先删除arp缓存：#  arp -d 10.134.55.25# 只是删除mac缓存，
+		# 这一步查看Idx的值
+		# netsh i i show in
+		
+		#其中的18 是Idx值。
+		# netsh -c "i i" add ne 18 192.168.1.250  00:50:56:9d:2b:cb		#绑定IP与mac，永久生效
+		其中netsh -c "i i" add ne 是缩写-> netsh -c "interface ipv4" add neighbors
+		如果要临时绑定，在命令后加入store参数，
+		#   netsh -c "i i" add ne 18 192.168.1.250  00:50:56:9d:2b:cb store=active
+		
+		#如何删除绑定：,18是Idx值，netsh show查看
+		# netsh -c "i i" delete neighbors 18
+		
+		
+		
+		
+		
+		
+		
+		
+		

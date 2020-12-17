@@ -1,0 +1,626 @@
+K8S使用详情接简介
+LABELS:最长不超过253个字符    kubectl get pods --show-labels
+第五课
+
+创建资源的方法:
+	apiserver 仅接受JSON格式的资源定义;
+	yaml格式提供配置清单,挨批server可自动将其转为json格式(yaml->json可无损转换),在提交;
+	
+大部分资源配置清单:
+$ kubectl explain pods 查看5个一级字段
+	1. apiVersion,group/versions命令查看组别信息:
+		$ kubectl api-versions命令查看组别信息,Group/Version,		core(group省略代表核心组).
+	2. kind:资源类别(大小写区分)
+		资源,对象
+			Workload: Pod,Replicaset,Deployment,StateSet ,DaemonSet ,Job,cronJob.
+		服务发现及均衡:Service,Ingress
+		/*不确定是否属于kind字段
+		配置及存储:Volume , ,CSI(容器存储接口)
+			ConfigMap.Secret
+			DownwardAPI
+		集群级资源
+			Namesapce,Node Role,ClusterRole,RoleBinding,ClusterBinding
+		元数据型资源
+			HPA,PodTemplate,LimitRange  */
+
+	3. metadata:元数据型资源
+	$ kubectl explain pods.metadata 查看二级字段
+			name
+			namespace
+			labels(标签)
+			annotations(资源注解)
+			
+			每个资源的引用PATH(大写字符表示实际替换部分)
+				./api/GROUP/VERSION/namespaces/NAMESPACE/TYPE/NAME
+	
+	4. spec:(用户期望状态,desired state)
+	
+	5. status:当前状态,current state,本字段由k8s自行定义,用户无法更改
+	
+		
+第六课
+
+资源配置清单
+	自主式Pod资源
+	
+	资源清单格式:
+		一级字段: apiVersion(group/version[alpha|beta|stable]),
+			kind,
+			metadata(name,namespace,labels,annotations,...)
+			spec,
+			status(只读资源)
+	pod资源:
+		spec.containers([]Object>
+		- name <string>
+		  image <string>
+		  imagePullPolicy <string>
+			always,Never,IfNotPresent
+		修改镜像中的默认应用:
+			command, args
+			https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container
+		标签:char的长度<63个字符,总共小于253c
+			key=value(<63)
+			key:<63,以字母,数字开头,下划线_,-,.五类
+			value:可以为空,<63只能以字母数字开头及结尾,五类居中
+		标签选择器:
+			等值关系:=,==,!=
+			集合关系:KEY in (VALUE1,VALUE2)
+				KEY not in()
+				!KEY
+				KEY
+		许多资源支持内嵌字段:定义使用的标签选择器:
+			matchlabels:直接给定键值
+			matchExpressions:基于给定的表达式来定义使用的标签选择器,{key:"KEY",oprator:"OPRATOR",values:[VAL1,VAL2...]}
+				操作符:In,Notin,:values字段的值必须为费控列表
+				Exists,NotExists:values字段必须为空列表;
+				
+	NodeSelector <map[string]string>
+		节点标签选择器,
+	nodeName<string>
+	
+	annotations:注解
+		与label不同,不能用于筛选资源对象,仅用于为对象提供"元数据".使用describe命令
+	Pod生命周期:
+		{与主容器结束时间相同,先运行init container[1,2...](串行),执行完结束init,开始执行主容器
+		main container :post start(启动前钩子), pre stop(结束前钩子)
+			健康状态检查:liveness probe(存活状态检测),readiness probe(就绪状态检测)}
+		状态: Pending(调度尚未完成),Running,Failed,Succeeded,Unknown
+		
+		创建Pod: api-server	etcd	schdueler	api-server	etcd	kubelet	apiserver	etcd
+		
+		Pod生命周期的重要行为:
+			初始化容器:
+			容器探测:probe,(传感器)
+				liveness:3s,5s,10s,2min等等周期测试存活
+				readiness
+			钩子:
+	
+	restartPolicy:重启时间(0s,10s,20s,40s,80s,160,300s.300s为最长时间)
+		Always,OnFailure,Never,Default to Always.
+		
+	探针类型有三种:
+		ExecAction,TCPSocketAction,HTTPGetAction
+vim liveness-probe-exec.yaml		
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-exec-pod
+  namespace: default
+spec:
+  containers:
+  - name: liveness-exec-container
+    image: busybox:latest
+    imagePullPolicy: IfNotPresent
+    command: ["/bin/sh","-c","touch /tmp/healthy;sleep 30;rm  -f /tmp/healthy;sleep 3600"]
+    livenessProbe:
+      exec:
+        command: ["test", "-e","/tmp/healthy"]
+      initialDelaySeconds: 2
+      periodSeconds: 3
+
+回顾Pod字段:
+	apiVersion,kind,metadata,spec,status(只读)
+	
+	spec:
+		containers:
+		nodeSelector:
+		nodeName:
+		restartPolicy:
+		
+		containers:
+			name
+			image
+			imagePullPolicy:always,Never,IfNotPresent
+			ports:
+				name
+				containerPort
+			livenessProbe
+			readinessProbe
+			lifecycle
+		
+		ExecAction:exec
+		TCPSocketAction:tcpSocket
+		HTTPGetAction:httpGet
+		
+		
+		
+自主式建立Pod:yaml文件方式
+
+
+Pod控制器:代理人为操作,deploy方式
+	严格按照用户需求启动pod,卡了自动重启
+	ReplicationController:
+	ReplicaSet:用户期望副本数,标签选择器,pod资源模板.
+	Deployment:建立在ReplicaSet之上,通过控制ReplicaSet控制Pod,更为强大的接口
+	DeamonSet:日志程序,确保集群中每个节点都运行一个日志收集Pod,后续加节点,自动添加Pod
+	Job:任务完成后退出
+	CronJob:周期运行,前次与今次任务冲突
+	StatefulSet:
+	
+	TPR:Third Party Resources,1.2+,1.7
+	CDR:Custom Defined Resources ,1.8+
+
+	Operator: 
+	
+Helm:外壳,
+	
+	
+Service
+	
+	工作模式: userspace,iptables,ipvs
+		userspace:1.1-,依靠kubeproxy监测
+		iptables:1.10-,
+		ipvs:1.11+,启用时需在部署时添加专门选项.编辑kubelet的 配置文件,ipvs装载内核模块
+		否则会自动降级为iptables
+		
+	类型:
+		ExternalName.ClusterIP,NodePort,and LoadBalancer
+		1. ClusterIP,主要用来引入流量,只能接入集群内部流量,想接入外部流量,用NodePort
+		
+		2. NodePort,接入集群外部流量,增强ClusterIP流程如下:   网络流量框架
+		NodePort: client -> NodeIP:NodePort -> ClusterIP:ServiceIP -> PodIP:containerPort
+		在NodeIP:NodePort之前添加负载均衡器,减缓node压力.
+		
+		3.在公有云环境下,LoadBalancer.增强NodeIP
+		
+		4.ExternelName,直接网络映射
+			FQDN(外部域名)
+				CNAME -> FQDN(内部域名)
+				
+		5. 无头服务:,没有ClusterIP:Headless Service,引入流量
+			将ServiceName -> PodIP,直接指向PodIP,本来解析的是ClusterIP:ServiceIP
+	资源记录:
+		SVC_NAME.NS_NAME.DOMAIN.LTD.
+		
+		svc.cluster.local.
+				redis.default.svc.cluster.local.
+		
+		
+Ingress资源:
+
+K8s核心资源:主要三个牢记:pod,controller,service
+	service:4层
+	iptables:4层
+	ipvs:4层
+	这些都是建立在Tcp/IP上,不是https
+	如果使用https:协议,要在scehduler上增加https,在每个后端服务器上配置https,
+	不能再ipvs上配置,都被调度走了,真正看到的解析DNS的IP地址取决于IPVS,必须使用VIP
+	SSL会话即贵且慢,要使用7层协议,在调度器和后端服务器之间不使用SSL会话.k8s在处理这个上
+	使用一个独特的Pod来解决,运行的7层的eg:nginx,traefik(微服务),Envoy==4.HAProxy,,先到独特pod,再内部通信到服务的podIP,使用pod去反代理,
+	之前使用service代理.框架如下:
+	############
+	客户端->loadBalancer ->nodeport ->service->独特pod(调度器pod)->服务pod
+	这样性能差.更改之后如下:
+	#############
+	客户端->LB-> 独特POd->服务pod
+	###############不需要service了.独特pod运行一个,使用DaemonSet,每个节点都能运行一个
+	#任何节点宕机都没关系,DaemonSet,但是节点太多也不行like3000个,调出三个节点专门运行独特pod,
+	解决节点太多.7层代理能力.
+	这样的三个独特pod方式,叫Ingress Controller
+	但是三个独特pod如何识别请求类型,nginx装载SQLserver,来识别请求类型.
+	
+	#使用URL映射,来处理公网主机名较少问题.
+	一个url路径映射到一个后端主机上
+	service通过标签选择器解决后端pod重启后ip更换问题,并始终watch的pod状态
+	独特pod解决这个问题的方式:
+		Ingress本身没有这个能力,只能使用service,但这个service仅仅只是分类,调度时不会经过service
+		pod变了,service资源也改变,这个service如何到前端,使用Ingress资源,资源动态注入到Ingress controller中
+		直接注入到upstream主机配置文件中,并使其重载该配置文件.也能实现7层调度/,架构:
+		######
+		externalLB -> <Service>Ingress-nginx /或者共享节点/或者DaemonSet方式-> <IngreController>Ingress-nginx ->
+		<Ingress>(虚拟主机/URL映射)->(只分类用的service,不做调度)pod
+	#############
+	设置Ingress资源时一定要使用和mage相同的环境,即不能直接使用mandnary.yaml文件,要使用相同命令,不然default-backend不会绑定nginx-ingress-controller
+	for file in namespace.yaml configmap.yaml rbac.yaml tcp-services-configmap.yaml with-rbac.yaml udp-services-configmap.yaml default-backend.yaml; do wget https://raw.githubusercontent.com/kubernetes/ingress-nginx/nginx-0.17.1/deploy/$file; done
+	具体请参考网页https://www.cnblogs.com/crazymagic/p/11267303.html
+	新版本的selector改变了,所以不能直接用madatory.yaml文件,要更改backend.yaml文件中的 标签选择器和标签才行
+	
+	特别注意:如果在配置域名解析时候出现default-backend404 错误,一定是/etc/hosts文件写错了.使得无法访问到域名的请求被
+	转移至backend对象,返回404
+	10.150.7.55 myapp.zhangbiao.com
+	10.150.7.55 tomcat.wohaoshuai.com
+	10.150.7.55 myapp.mageedu.com
+	
+
+################
+
+
+存储卷资源:volume
+	1. emptyDir: pod的临时目录.
+	2. hostPath: 主机路径,(临时)
+	3. 网络连接永久存储
+		1)SAN: iSCSI,
+			NAS:nfs,cifs
+		2)分布式存储:
+			glusterfs,ceph(rbd),cephfs
+		3) 云存储:
+			EBS,Azure Disk,
+	# kubectl explain pods.spec.volumes
+
+	
+1.  ENTRYPOINT脚本:方式直接注入资源配置.环境变量
+
+2. configMap:
+	k8s的配置中心,支持内容动态修改,明文存放,可以支持容器重载配置文件的方式重新加载进程
+	能注入到容器中,集群级资源,like:ns,pv
+3. Secrect:
+	编码存放,加密方式的存储中心,支持动态修改
+	
+	将配置文件解耦配置文件.
+	configMap:  1)存储卷方式
+				2):键值对
+配置容器化应用的方式:
+
+		1.自定义命令行参数:args
+		2.配置文件直接注入到镜像
+		3.环境变量: 两种方式
+			1)cloud Native的应用程序一般可直接通过环境变量加载配置
+			2)通过 ENTRYPOINT脚本来预处理变量为配置文件中的配置信息
+		4. 存储卷:
+		
+
+		
+pod资源环境变量的获取方式:
+	env: #kubectl explain pods.spec.containers.env
+	#kubectl explain pods.spec.containers.env.valueFrom
+	
+	
+	
+############
+之前都是无状态应用	:坏一个重启一个就好了.
+
+StatefulSet:有状态应用副本集: 写脚本注入到pod中
+	Operator:组件 .coreOS组织开发
+	cattle,pet:(群体与个体)
+	PetSet -> 更名为StatefulSet
+	
+	特性:
+	1. 稳定且唯一的网络标识符
+	2. 稳定且持久的存储
+	3. 有序.平滑地部署和扩展
+	4. 有序.平滑地终止和删除 
+	5. 有序的滚动更新
+	
+	三个组件: headless service; StatefulSet;volumeClaimTemplate(实现存储持久化,不随pod结束而重新生成)
+	
+	volumeClaimTemplate通过绑定pvc来实现持久存储.
+	
+	
+	
+	
+	
+	
+	
+	
+root@PTY:~/manifests# vim pod-demo.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-demo
+  namespace: default
+  labels:
+    app: myapp
+	#架构分层,frontend,backend,data.
+    tier: frontend
+spec:
+  containers:
+  - name: myapp
+    image: dockerptu/httpd:v0.3
+    ports:
+    - name: http
+      containerPort: 80
+    - name: https
+      containerPort: 443
+  - name: busybox
+    image: busybox:latest
+    imagePullPolicy: IfNotPresent
+    command:
+    - "/bin/sh"
+    - "-c"
+    - "sleep 3600"
+~                      
+分级别:
+qa/test,develop/production
+
+实例讲解:
+1505  kubectl get ns
+ 1506  kubectl get pods-n kube-public
+ 1507  kubectl get pods -n kube-public
+ 1508  kubectl get pods -n kube-system -o wide
+ 1509  kubectl -h
+ 1510  kubectl create -h
+ 1511  kubectl api-resources
+ 1512  kubectl get deploy
+ 1513  kubectl get deploy -n kube-system
+ 1514  kubectl create -h
+ 1515  kubectl create namesapce develop
+ 1516  kubectl create namespace develop
+ 1517  kubectl create namespace testing
+ 1518  kubectl create namespace prod
+ 1519  kubectl get ns
+ 1520  kubectl delete namespaces develop
+ 1521  kubectl get ns
+ 1522  kubectl delete ns/testing ns/prod
+ 1523  kubectl get ns
+ 1524  kubectl get ns/default -o yaml
+ 1525  kubectl get ns/default -o json
+ 1526  kubectl describe ns/default
+ 1527  kubectl create deployment -h
+ 1528  kubectl create deploy ngx-dep --image=nginx:1.14-alpine
+ 1529  kubectl get all
+ 1530  kubectl get pods
+ 1531  kubectl get pods -o wide
+ 1532  curl 10.244.1.2
+ 1533  ping 10.39.1.189
+ 1534  kubectl delete pods/ngx-dep-d554574bd-47czs
+ 1535  kubectl pods -o wide
+ 1536  kubectl get pods -o wide
+ 1537  kubectl create service -h
+ 1538  kubectl create service clusterip -h
+ 1539  kubectl create service clusterip ngx-svc --tcp=80:80 
+ 1540  kubectl get svc
+ 1541  kubectl get svc/ngx-svc -o yaml
+ 1542  kubectl delete svc/nsx-svc
+ 1543  kubectl delete svc/ngx-svc
+ 1544  kubectl create service clusterip ngx-dep --tcp=80:80 
+ 1545  kubectl get svc/ngx-dep -o yaml
+ 1546  kubectl describe svc/ngx-dep
+ 1564  kubectl get -A
+ 1565  kubectl get pod -A
+ 1566  kubectl expose --name=nginx --port=80 --target-port=80 --protocol=TCP
+ 1567  history |tail -100
+ 1568   kubectl get deploy
+ 1569  kubectl expose deployment nginx-deploy --name=nginx --port=80 --target-port=80 --protocol=TCP
+ 1570  kubectl get deploy -n kube-system
+ 1571  kubectl get deploy -o wide
+ 1572  kubectl expose deployment ngx-dep --name=nginx --port=80 --target-port=80 --protocol=TCP
+ 1573  kubectl get svc
+ 1574  kubectl get svc -o wide
+ 1575  kubectl get pods -o wide
+ 1576  kubectl get all
+ 1577  yum install bind-utils -y
+ 1578  dig -t A nginx @10.96.0.10
+ 1579  history |tail -200
+ 1580  kubectl get pods
+ 1581  dig -t A nginx.default.svc.cluster.local
+ 1582  dig -t A nginx.default.svc.cluster.local @10.96.0.10
+ 1583  kubectl get pods
+ 1584  kubectl delete pods/ngx-dep-d554574bd-x4ffh
+ 1585  kubectl get pods
+ 1586  kubectl get pods -o wide
+ 1587  kubectl get svc
+ 1588  kubectl describe pods
+ 1589  kubectl describe svc nginx
+ 1590  kubectl get pods --show-labels
+ 1591  kubectl describe svc nginx
+ 1592  kubectl edit svc nginx
+ 1593  kubectl describe svc nginx
+ 1594  kubectl edit svc nginx
+ 1595  kubectl describe svc nginx
+ 1596  kubectl delete svc nginx
+ 1597  kubectl get svc
+ 1598  kubectl expose deployment ngx-dep --name=nginx
+ 1599  kubectl expose deployment ngx-dep --name=nginx 
+ 1600  history |tail -50
+ 1601  kubectl expose deployment ngx-dep --name=nginx --port=80 --target-port=80 --protocol=TCP
+ 1602  kubectl get svc
+ 1603  kubectl delete ngx-dep
+ 1604  kubectl delete svc ngx-dep
+ 1605  kubectl get svc
+ 1606  kubectl delete svc nginx
+ 1607  kubectl expose deployment ngx-dep --name=nginx 
+ 1608  kubectl expose -h
+ 1609  kubectl expose deployment ngx-dep --name=nginx --port=80 --target-port=80 --protocol=TCP
+ 1610  kubectl get svc
+ 1611  kubectl get all
+ 1612  kubectl delete svc nginx
+ 1613  kubectl expose deployment ngx-dep --name=nginx --port=80 --target-port=80 --protocol=TCP
+ 1614  kubectl get svc
+ 1615  kubectl describe deployment ngx-dep
+ 1616  docker login
+ 1617  igure a credential helper to remove this warning. See
+ 1618  https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+ 1619  docker pull  dockerptu/httpd
+ 1620  docker pull  dockerptu/httpd:v0.3
+ 1621  docker image ls
+ 1622  kubectl run myapp --image=                                        v0.2-1              21080aa7dab3        4 weeks ago         1.22MB
+ 1623  tinyhttpd                                           v0.1-9              6170ff23f52f        4 weeks ago         8.39MB
+ 1624  kubectl run myapp --image=dockerptu/httpd:v0.3 --replicas=2
+ 1625  kubectl get deployment
+ 1626  kubectl get deployment -w
+ 1627  kubectl get deployment
+ 1628  kubectl get pods -o wide
+ 1629  kubectl expose deployment myapp --name=myapp --port=80 
+ 1630  kubectl get svc
+ 1631  kubectl get pods -o wide
+ 1632  kubectl delete pods/client
+ 1633  kubectl scale --replicas=5 deployment myapp
+ 1634  kubectl get pods
+ 1635  kubectl scale --replicas=3 deployment myapp
+ 1636  docker image ls
+ 1637  docekr ps -a
+ 1638  docker ps -a
+ 1639  docker container start b1
+ 1640  docker exec -it b1 /bin/sh
+ 1641  docker ps -a
+ 1642  kubectl get pods
+ 1643  kubectl set image -h
+ 1644  kubectl get pods
+ 1645  kubectl describe myapp-5cd75fb7c8-6fq29 
+ 1646  kubectl describe podsmyapp-5cd75fb7c8-6fq29 
+ 1647  kubectl describe pods myapp-5cd75fb7c8-6fq29 
+ 1648  kubectl set image deployment myapp myapp=dockerptu/httpd:v0.3
+ 1649  kubectl set image deployment myapp myapp=dockerptu/myapp:latest
+ 1650  kubectl rollout status deployment myapp
+ 1651  kill -9 %1
+ 1652  kubectl rollout undo -h
+ 1653  kubectl rollout undo deployment myapp 
+ 1654  kubectl get pod
+ 1655  push dockerptu/mya
+ 1656  history |tail -50
+ 1657  kubectl explain pod -h
+ 1658  kubectl explain pods
+ 1659  kubectl explain pods.metadata
+ 1660  kubectl explain pods.spec
+ 1661  kubectl explain pods.spec.containers
+ 1662  kubectl explain pods.spec.containers.livenessProbe
+ 1663  clear
+ 1664  ls
+ 1665  clear
+ 1666  mkdir manifests
+ 1667  cd manifests/
+ 1668  ls
+ 1669  vim pod-demo.yaml
+ 1670  kubectl create -f pod-demo.yaml 
+ 1671  kubectl get pods
+ 1672  kubectl describe pods pod-demo
+ 1673  kubectl get pods
+ 1674  kubectl logs pod-demo myapp
+ 1675  kubectl logs pod-demo myapp
+ 1676  clear
+ 1677  kubectl delete pods pod-demo
+ 1678  kubectl create -f pod-demo.yaml 
+ 1679  kubectl get pods
+ 1680  kubectl exec -it pod-demo -c  myapp -- /bin/sh
+ 1681  kubectl describe pods pod-demo
+ 1682  kubectl get pods
+ 1683  kubectl delete pod pod-demo
+ 1684  vim pod-demo.yaml 
+ 1685  kubectl delete -f pod-demo.yaml 
+ 1686  kubectl get pods
+ 1687  kubectl delete -f pod-demo.yaml 
+ 1688  kubectl create -f pod-demo.yaml 
+ 1689  kubectl delete -f pod-demo.yaml 
+ 1690  ls
+ 1691  sll
+ 1692  ll
+ 1693  cat pod-demo.yaml 
+ 1694  docker imager ls
+ 1695  docker image ls
+ 1696  docker ps -a
+ 1697  docker start web1
+ 1698  docker exec -it  web1 /bin/sh
+ 1699  vi pod-demo.yaml 
+ 1700  kubectl explain pods.spec.containers
+ 1701  vim pod-demo.yaml 
+ 1702  kubectl explain pods.spec.containers.ports
+ 1703  vim pod-demo.yaml 
+ 1704  kubectl scale --replicas=1 deployment myapp
+ 1705  kubectl label -h
+ 1706  kubectl label pods pod-demo release=canary
+ 1707  kubectl get pods -l app --show-label
+ 1708  kubectl get pods -l app --show-labels
+ 1709  kubectl label pods pod-demo release=stable
+ 1710  kubectl label pods pod-demo release=stable --overwrite
+ 1711  kubectl get pods -l app --show-labels
+ 1712  kubectl get pods -l release
+ 1713  kubectl get pods -l release,app
+ 1714  kubectl get pods -l release=stable --show-labels
+ 1715  kubectl label pods ngx-dep-d554574bd-77dfd release=canary
+ 1716  kubectl get pods -l release
+ 1717  kubectl get pods -l release=canary
+ 1718  kubectl get pods -l release,app
+ 1719  kubectl get pods -l release=stable,app=myapp
+ 1720  name(){ arg1=$1; arg2=$2; command on arg1; }
+ 1721  name foo bar
+ 1722  ll
+ 1723  vim passed.sh
+ 1724  sh passed.sh 
+ 1725  ss -tnl
+ 1726  top
+ 1727  pid=1
+ 1728  echo $pid
+ 1729  echo $1
+ 1730  [ -d "/proc/1" ] && return 0
+ 1731  [ -d "/proc/1" ] 
+ 1732  echo $?
+ 1733  ll /proc/1
+ 1734  ll /proc/[0-9]
+ 1735  yday() { date --date="1 day ago"; }
+ 1736  yday
+ 1737  ll
+ 1738  ./passed.sh
+ 1739  chmod u+x passed.sh 
+ 1740  ping wintel.foxera.com
+ 1741  ll
+ 1742  cd img1
+ 1743  ll
+ 1744  cd
+ 1745  touch imgabc
+ 1746  ll .|grep -e "img."
+ 1747  curl 10.244.1.4
+ 1748  curl 10.96.76.254
+ 1749  curl nginx
+ 1750  cat /etc/resolv.conf 
+ 1751  kubectl get pods -n kube-system -o wide
+ 1752  kubectl get svc -n kube-system
+ 1753  dig -t A nginx @10.96.0.10 
+ 1754  yum install bind-utils -y
+ 1755  kill -9 %1
+ 1756  jobs
+ 1757  dig -t A nginx @10.96.0.10 
+ 1758  clear
+ 1759  kubectl run --help
+ 1760  kubectl run client --image=busybox --replicas=1 -it --restart=Never
+ 1761  kubectl get image
+ 1762  kubectl get -h
+ 1763  kubeadm -h
+ 1764  kubectl image
+ 1765  kubectl --help
+ 1766  kubectl attach client -it
+ 1767  kubectl get pods
+ 1768  kubectl delete client
+ 1769  kubectl delete pods client
+ 1770  kubectl get pods
+ 1771  docker image ls
+ 1772  history 
+ 1773  kubectl get all
+ 1774  kubectl logs pods pod/myapp-6d5959df6c-rnw2v
+ 1775  kubectl logs pod pod/myapp-6d5959df6c-rnw2v
+ 1776  kubectl logs  pod/myapp-6d5959df6c-rnw2v
+ 1777  kubectl describe pod pod/myapp-6d5959df6c-rnw2v
+ 1778  history |tail -50
+ 1779  env
+ 1780  unset http_proxy
+ 1781  unset https_proxy
+ 1782  curl 10.244.1.3
+ 1783  bash
+ 1784  env
+ 1785  curl 10.96.115.149
+ 1786  curl ngx-dep
+ 1787  kubectl get -n kube-system
+ 1788  kubectl get pods -n kube-system
+ 1789  kubectl get svc -n kube-system
+ 1790  vim /etc/resolv.conf 
+ 1791  curl ngx-dep
+ 1792  curl ngx-dep.default.svc.cluster.local
+ 1793  bash 
+ 1794  docker commit b1 b1:myapp
+ 1795  docker container ls
+ 1796  docker image ls
+ 1797  docker image -h
+ 1798  docker image rm b1
+ 1799  docker image rm b1:myapp
+ 1800  docker ps -a
+
+

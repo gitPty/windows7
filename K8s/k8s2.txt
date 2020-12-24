@@ -537,7 +537,50 @@ master节点
 CI： Containers Intergration  ：持续集成
 CD： Containers dilivery  ：持续交付
 CD： Containers Deployment ： 持续部署
+	
+1.推送代码到仓库
+2. CI/CD  代码拖下来静态分析	
+3. 代码测试，如完整性
+4. 打包代码，QA 
+5. 部署后测试，
+6. 交付给运维，发布到线上
+
+
+#版本控制系统
+scm 
+vcs
 		
-		
-		
-			
+git ，svn 
+
+持续集成工具， jenkins ，jone（音译） ，sqlCI
+
+
+部署工具： anisble puppet ，
+弓箭仓库： dockerhub。
+云环境部署： aws， azure， OpenStack（IAAS），openshift（PAAS）（redhat）。
+
+
+rancher ： 企业 ，企业级管理平台。
+coreos： tectonic  ， coreos被redhat收购了
+kaas： k8s as a service  ，azure。
+
+
+
+架构：
+load balancer   。 artifact factory  。 build automation  。 release automation
+
+logging			Containized Workload            image registry
+				kubernetes Cluster
+				network（SDN）  、storage 		provisoning configuration
+monitoring		core infrastructure
+
+
+待扩展			：后续学习目标。
+
+1. master 节点高可用
+2. kubernetes federation
+3. priority class
+4. limit range
+5. PSP  ： pod security policy
+6. Security Context 
+

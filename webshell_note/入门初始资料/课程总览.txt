@@ -558,3 +558,27 @@ http://wooyun.2xss.cc/searchbug.php?q=%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97
 
 wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-8.repo
 iOpP3aoSi?oB
+
+
+############
+找网站路径。
+############
+根目录
+
+########
+判断CMS框架
+########
+御剑等扫描工具
+判断原理， 目录下存在哪些对应文件，对应目录，内容是否包含某些关键字，判断CMS架构。
+
+########burp 使用。
+安装。
+1. java环境
+2. 百度云。
+
+##########
+appScan
+##########
+IBM的开发。
+先爬虫在扫描，
+
